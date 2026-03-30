@@ -7,6 +7,8 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+// ✅ Use dynamic PORT for Render, fallback to 3000 locally
 const PORT = process.env.PORT || 3000;
 
 /* ================================
@@ -14,7 +16,14 @@ const PORT = process.env.PORT || 3000;
 ================================ */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve all HTML/CSS/JS from "client" folder
 app.use(express.static(path.join(__dirname, "client")));
+
+// Optional: make role.html the default page
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "client/role.html"));
+});
 
 /* ================================
    DATABASE
@@ -31,8 +40,6 @@ const db = new sqlite3.Database("tickets.db", (err) => {
    CREATE TABLES IF NOT EXIST
 ================================ */
 db.serialize(() => {
-
-  // TICKETS TABLE
   db.run(`
     CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +52,6 @@ db.serialize(() => {
     )
   `);
 
-  // SETTINGS TABLE (ADMIN)
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY,
@@ -55,7 +61,6 @@ db.serialize(() => {
     )
   `);
 
-  // USERS TABLE (OPERATORS)
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -64,13 +69,13 @@ db.serialize(() => {
     )
   `);
 
-  // Insert default admin if not exists
+  // Default admin
   db.run(`
     INSERT OR IGNORE INTO settings (id, username, email, password)
     VALUES (1, 'admin', 'admin@email.com', 'admin123')
   `);
 
-  // Insert default operator if not exists
+  // Default operator
   db.run(`
     INSERT OR IGNORE INTO users (id, password, role)
     VALUES ('operator1', 'operator123', 'operator')
@@ -83,7 +88,6 @@ db.serialize(() => {
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
 
-  // First check admin
   db.get(
     "SELECT * FROM settings WHERE username=? AND password=?",
     [username, password],
@@ -97,7 +101,6 @@ app.post("/api/login", (req, res) => {
           username: admin.username
         });
       } else {
-        // If not admin, check operator
         db.get(
           "SELECT * FROM users WHERE id=? AND password=?",
           [username, password],
