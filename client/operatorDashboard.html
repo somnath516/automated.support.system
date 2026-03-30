@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Operator Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  display:flex;
+  background:#f4f6f9;
+}
+
+.sidebar{
+  width:230px;
+  background:#1f2937;
+  color:white;
+  height:100vh;
+  padding:20px;
+  position:fixed;
+  transition:0.3s;
+}
+
+.sidebar.collapsed{transform:translateX(-100%);}
+
+.sidebar h2{text-align:center;margin-bottom:40px;}
+
+.sidebar a{
+  display:block;
+  color:#d1d5db;
+  text-decoration:none;
+  padding:10px;
+  margin:10px 0;
+  border-radius:6px;
+}
+
+.sidebar a:hover{background:#374151;color:white;}
+
+.logout-btn{color:#f87171!important;margin-top:20px;}
+
+.main{
+  flex:1;
+  margin-left:0;
+  padding:30px 40px;
+  width:100%;
+  transition:0.3s;
+}
+
+.main.full{margin-left:230px;}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:30px;
+}
+
+.menu-btn{
+  background:#1f2937;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.kpi-cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:20px;
+  margin-bottom:30px;
+}
+
+.kpi{
+  background:white;
+  padding:25px;
+  border-radius:14px;
+  text-align:center;
+  box-shadow:0 8px 20px rgba(0,0,0,0.06);
+}
+
+.kpi h4{font-size:14px;color:#6b7280;}
+.kpi h2{font-size:30px;margin:0;}
+
+.middle-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:20px;
+  margin-bottom:30px;
+}
+
+.left-section .block,
+.left-section .chart-box{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.06);
+  margin-bottom:20px;
+}
+
+.right-section .chart-box,
+.right-section .recent-box{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.06);
+  margin-bottom:20px;
+}
+
+#recentTickets{
+  max-height:220px;
+  overflow-y:auto;
+  margin-top:10px;
+}
+
+#recentTickets::-webkit-scrollbar{
+  width:6px;
+}
+
+#recentTickets::-webkit-scrollbar-thumb{
+  background:#cbd5e1;
+  border-radius:10px;
+}
+
+.recent-box::-webkit-scrollbar{
+  width:6px;
+}
+
+.recent-box::-webkit-scrollbar-thumb{
+  background:#cbd5e1;
+  border-radius:10px;
+}
+
+/* ✅ Table scroll (unchanged) */
+.table-container{
+  max-height:260px;
+  overflow-y:auto;
+}
+
+.table-container thead th{
+  position:sticky;
+  top:0;
+  background:#f3f4f6;
+  z-index:1;
+}
+
+/* ✅ FIXED: Chart height increased (ONLY needed fix) */
+.chart-box{
+  height:300px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+.chart-box canvas{
+  width:100% !important;
+  height:100% !important;
+}
+
+/* remaining */
+
+.recent-ticket-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px;
+  margin-bottom:12px;
+  background:#f9fafb;
+  border-radius:8px;
+  font-size:14px;
+}
+
+.status-badge{
+  padding:6px 12px;
+  border-radius:20px;
+  font-size:12px;
+  color:white;
+  font-weight:500;
+}
+
+.status-open{background:#3b82f6;}
+.status-progress{background:#f59e0b;}
+.status-closed{background:#10b981;}
+
+table{width:100%;border-collapse:collapse;}
+th,td{padding:14px;border-bottom:1px solid #eee;text-align:left;}
+th{background:#f3f4f6;}
+
+.badge{
+  padding:4px 10px;
+  border-radius:12px;
+  color:white;
+  font-size:12px;
+}
+
+.High{background:#ef4444;}
+.Medium{background:#f59e0b;}
+.Low{background:#10b981;}
+
+button.action{
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  margin-right:5px;
+  color:white;
+}
+
+.progress-btn{background:#f59e0b;}
+.close-btn{background:#10b981;}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar collapsed" id="sidebar">
+<h2>Operator Panel</h2>
+<a href="operatorDashboard.html">Dashboard</a>
+<a href="mytickets.html">My Tickets</a>
+<a href="#" onclick="logout()" class="logout-btn">Logout</a>
+</div>
+
+<div class="main" id="main">
+
+<div class="topbar">
+<button class="menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+<h1>Operator Dashboard</h1>
+</div>
+
+<div class="kpi-cards">
+<div class="kpi"><h4>Tickets Assigned</h4><h2 id="totalAssigned">0</h2></div>
+<div class="kpi"><h4>In Progress</h4><h2 id="inProgress">0</h2></div>
+<div class="kpi"><h4>Closed</h4><h2 id="closedCount">0</h2></div>
+<div class="kpi"><h4>Completion Rate</h4><h2 id="completionRate">0%</h2></div>
+</div>
+
+<div class="middle-grid">
+
+<div class="left-section">
+
+<div class="block">
+<h3>My Tickets</h3>
+
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Title</th>
+<th>Priority</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="ticketTable"></tbody>
+</table>
+</div>
+
+</div>
+
+<div class="chart-box">
+<h3>Average Tickets Created</h3>
+<canvas id="avgChart"></canvas>
+</div>
+
+</div>
+
+<div class="right-section">
+
+<div class="chart-box">
+<h3>Ticket Priority</h3>
+<canvas id="priorityChart"></canvas>
+</div>
+
+<div class="recent-box">
+<h3>Recent Tickets</h3>
+<div id="recentTickets"></div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+const socket = io();
+const operatorName = localStorage.getItem("operatorName");
+
+async function loadTickets(){
+
+  const res = await fetch(`/api/tickets/operator/${operatorName}`);
+  const tickets = await res.json();
+
+  const total = tickets.length;
+  const inProgress = tickets.filter(t => t.status === "In Progress").length;
+  const closed = tickets.filter(t => t.status === "Closed").length;
+
+  document.getElementById("totalAssigned").innerText = total;
+  document.getElementById("inProgress").innerText = inProgress;
+  document.getElementById("closedCount").innerText = closed;
+  document.getElementById("completionRate").innerText =
+        total ? Math.round((closed/total)*100)+"%" : "0%";
+
+  /* ✅ FIX 1: TABLE DATA BACK */
+  const tbody = document.getElementById("ticketTable");
+  tbody.innerHTML = "";
+
+  tickets.forEach((ticket,i) => {
+
+    let actionButtons = "";
+
+    if(ticket.status === "Assigned"){
+      actionButtons = `<button class="action progress-btn"
+      onclick="updateStatus(${ticket.id},'In Progress')">Start</button>`;
+    }
+    else if(ticket.status === "In Progress"){
+      actionButtons = `<button class="action close-btn"
+      onclick="updateStatus(${ticket.id},'Closed')">Close</button>`;
+    }
+    else{
+      actionButtons = "Completed";
+    }
+
+    tbody.innerHTML += `
+    <tr>
+      <td>${i+1}</td>
+      <td>${ticket.title}</td>
+      <td><span class="badge ${ticket.priority}">${ticket.priority}</span></td>
+      <td>${ticket.status}</td>
+      <td>${actionButtons}</td>
+    </tr>`;
+  });
+
+  /* ✅ FIX 2: RECENT TICKETS BACK */
+  const recentDiv = document.getElementById("recentTickets");
+  recentDiv.innerHTML = "";
+
+  tickets.slice(-5).reverse().forEach(ticket => {
+
+    let statusClass = "status-open";
+
+    if(ticket.status === "Assigned") statusClass = "status-open";
+    else if(ticket.status === "In Progress") statusClass = "status-progress";
+    else if(ticket.status === "Closed") statusClass = "status-closed";
+
+    recentDiv.innerHTML += `
+    <div class="recent-ticket-row">
+      <div>
+        <strong>${ticket.title}</strong><br>
+        <small>${ticket.status}</small>
+      </div>
+      <span class="status-badge ${statusClass}">${ticket.status}</span>
+    </div>`;
+  });
+
+  /* charts */
+  const high = tickets.filter(t => t.priority==="High").length;
+  const medium = tickets.filter(t => t.priority==="Medium").length;
+  const low = tickets.filter(t => t.priority==="Low").length;
+
+  if(window.priorityChartObj) window.priorityChartObj.destroy();
+
+window.priorityChartObj = new Chart(document.getElementById("priorityChart"), {
+  type:'doughnut',
+  data:{
+    labels:["High","Medium","Low"],
+    datasets:[{
+      data:[high,medium,low],
+      backgroundColor:["#ef4444","#f59e0b","#10b981"]
+    }]
+  },
+  options:{
+    rotation:-90,
+    circumference:180,
+    cutout:"65%",
+    maintainAspectRatio:false,
+    layout:{ padding:{ bottom:20 }},
+    plugins:{ legend:{ position:"bottom" }}
+  }
+});
+
+  if(window.avgChartObj) window.avgChartObj.destroy();
+
+  /* ✅ FIX 3: ADD LABEL (removes "undefined") */
+  window.avgChartObj = new Chart(document.getElementById("avgChart"), {
+    type:'bar',
+    data:{
+      labels:["Week1","Week2","Week3","Week4"],
+      datasets:[{
+        label:"Tickets",
+        data:[1,2,3,2],
+        backgroundColor:"#22c55e",
+        borderRadius:8
+      }]
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{ legend:{ display:true }}
+    }
+  });
+}
+
+function updateStatus(id,status){
+  fetch(`/api/tickets/${id}/status`,{
+    method:"PUT",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({status})
+  }).then(()=>loadTickets());
+}
+
+socket.on("ticketStatusUpdated",loadTickets);
+socket.on("newTicket",loadTickets);
+
+function toggleSidebar(){
+  const sidebar = document.getElementById("sidebar");
+  const main = document.getElementById("main");
+
+  sidebar.classList.toggle("collapsed");
+  main.classList.toggle("full");
+}
+function logout(){
+  localStorage.removeItem("operatorName");
+  window.location.href = "role.html";
+}
+
+loadTickets();
+</script>
+
+</body>
+</html>

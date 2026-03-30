@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login | Ticket System</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #1f4037, #99f2c8);
+}
+
+.login-container {
+  background: white;
+  width: 380px;
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-container h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #2c3e50;
+}
+
+.input-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 40px 12px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  transition: 0.3s;
+}
+
+.input-group input:focus {
+  border-color: #1abc9c;
+  box-shadow: 0 0 10px rgba(26,188,156,0.3);
+  outline: none;
+}
+
+.input-group span {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  font-size: 14px;
+  color: #888;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #1abc9c;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #16a085;
+}
+
+#result {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 20px;
+}
+
+.success { color: green; }
+.error { color: red; }
+</style>
+</head>
+
+<body>
+
+<div class="login-container">
+  <h2>Ticket Management System</h2>
+
+  <form id="loginForm">
+    <div class="input-group">
+      <input id="username" placeholder="Username" autofocus>
+      <span>👤</span>
+    </div>
+
+    <div class="input-group">
+      <input id="password" type="password" placeholder="Password">
+      <span>🔒</span>
+    </div>
+
+    <button type="submit">Login</button>
+  </form>
+
+  <div id="result"></div>
+</div>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const result = document.getElementById("result");
+
+  if (!username || !password) {
+    result.className = "error";
+    result.innerText = "Please enter both username and password.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      result.className = "error";
+      result.innerText = data.message || "Invalid credentials.";
+      return;
+    }
+
+    localStorage.clear();
+    localStorage.setItem("role", data.role);
+
+    if (data.role === "operator") {
+      localStorage.setItem("operatorName", username);
+      result.className = "success";
+      result.innerText = "Operator login successful! Redirecting...";
+      setTimeout(() => {
+        window.location.href = "operatorDashboard.html";
+      }, 800);
+    } 
+    else if (data.role === "admin") {
+      result.className = "success";
+      result.innerText = "Admin login successful! Redirecting...";
+      setTimeout(() => {
+        window.location.href = "adminDashboard.html";
+      }, 800);
+    }
+
+  } catch (err) {
+    result.className = "error";
+    result.innerText = "Server error. Please try again.";
+  }
+});
+</script>
+
+</body>
+</html>

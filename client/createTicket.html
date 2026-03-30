@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Create Ticket</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root {
+    --bg-gradient: linear-gradient(-45deg, #1e3c72, #2a5298, #0f2027, #203a43);
+    --card-bg: rgba(255,255,255,0.12);
+    --text-color: white;
+}
+
+body.light {
+    --bg-gradient: linear-gradient(-45deg, #f5f7fa, #c3cfe2, #e2ebf0, #ffffff);
+    --card-bg: rgba(255,255,255,0.9);
+    --text-color: #222;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
+
+body{
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:var(--bg-gradient);
+background-size:400% 400%;
+animation:gradientBG 12s ease infinite;
+overflow:hidden;
+transition:0.4s;
+}
+
+@keyframes gradientBG{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+body::before, body::after{
+content:"";
+position:absolute;
+width:300px;
+height:300px;
+background:rgba(255,255,255,0.1);
+border-radius:50%;
+filter:blur(80px);
+animation:float 10s infinite alternate;
+}
+
+body::after{
+bottom:-100px;
+right:-100px;
+animation-delay:3s;
+}
+
+@keyframes float{
+from{transform:translateY(-20px);}
+to{transform:translateY(40px);}
+}
+
+.card{
+width:420px;
+padding:20px;
+border-radius:25px;
+backdrop-filter:blur(25px);
+background:var(--card-bg);
+box-shadow:0 30px 60px rgba(0,0,0,0.4);
+text-align:center;
+color:var(--text-color);
+position:relative;
+animation:fadeIn 0.8s ease;
+}
+
+@keyframes fadeIn{
+from{opacity:0;transform:translateY(20px);}
+to{opacity:1;transform:translateY(0);}
+}
+
+h2{
+margin-bottom:20px;
+}
+
+.ticket-id{
+margin-bottom:20px;
+opacity:0.9;
+font-weight:600;
+}
+
+.form-group{
+position:relative;
+margin-bottom:25px;
+}
+
+input, select {
+    height: 45px;
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.2);
+    color: var(--text-color);
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s;
+}
+
+textarea {
+    min-height: 100px;
+    resize: none;
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.2);
+    color: var(--text-color);
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s;
+}
+
+input:hover, select:hover{
+background:rgba(255,255,255,0.3);
+}
+
+select option{
+background:#1e3c72;
+color:white;
+}
+
+body.light select option{
+background:white;
+color:black;
+}
+
+label{
+position:absolute;
+left:14px;
+top:14px;
+font-size:13px;
+color:rgba(255,255,255,0.9);
+pointer-events:none;
+transition:0.3s;
+}
+
+body.light label{
+color:#444;
+}
+
+input:focus, select:focus{
+border:1px solid #00c6ff;
+box-shadow:0 0 15px rgba(0,198,255,0.6);
+}
+
+input:focus + label,
+input:not(:placeholder-shown) + label,
+select:focus + label,
+select:valid + label,
+textarea:focus + label,
+textarea:not(:placeholder-shown) + label{
+top:-8px;
+left:8px;
+font-size:11px;
+background:var(--card-bg);
+padding:0 6px;
+border-radius:5px;
+}
+
+button{
+width:100%;
+padding:14px;
+border:none;
+border-radius:12px;
+background:linear-gradient(90deg,#00c6ff,#0072ff);
+color:white;
+font-weight:600;
+cursor:pointer;
+margin-top:5px;
+transition:0.3s;
+position:relative;
+overflow:hidden;
+}
+
+button:hover{
+transform:translateY(-3px);
+box-shadow:0 10px 20px rgba(0,0,0,0.3);
+}
+
+.toggle-mode{
+position:absolute;
+top:15px;
+right:20px;
+cursor:pointer;
+font-size:18px;
+}
+
+.modal{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.7);
+display:flex;
+justify-content:center;
+align-items:center;
+visibility:hidden;
+opacity:0;
+transition:0.3s;
+}
+
+.modal.active{
+visibility:visible;
+opacity:1;
+}
+
+.modal-content{
+background:white;
+padding:40px;
+border-radius:20px;
+text-align:center;
+width:350px;
+animation:pop 0.4s ease;
+}
+
+@keyframes pop{
+from{transform:scale(0.8);}
+to{transform:scale(1);}
+}
+
+.checkmark{
+width:80px;
+height:80px;
+border-radius:50%;
+border:5px solid #4BB543;
+position:relative;
+margin:auto;
+animation:scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn{
+from{transform:scale(0);}
+to{transform:scale(1);}
+}
+
+.checkmark::after{
+content:'';
+position:absolute;
+left:22px;
+top:38px;
+width:20px;
+height:40px;
+border-right:5px solid #4BB543;
+border-bottom:5px solid #4BB543;
+transform:rotate(45deg);
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<div class="toggle-mode" onclick="toggleMode()">🌙 / ☀</div>
+
+<h2>Create Support Ticket</h2>
+
+<div class="ticket-id" id="ticketId"></div>
+
+<form id="ticketForm">
+
+<div class="form-group">
+<input type="text" id="title" placeholder=" " required>
+<label>Issue Title</label>
+</div>
+
+<div class="form-group">
+<select id="priority" required>
+<option value="" disabled selected hidden></option>
+<option>High</option>
+<option>Medium</option>
+<option>Low</option>
+</select>
+<label>Priority</label>
+</div>
+
+<div class="form-group">
+<select id="category" required>
+<option value="" disabled selected hidden></option>
+<option>Software</option>
+<option>Network</option>
+<option>Hardware</option>
+</select>
+<label>Category</label>
+</div>
+
+<div class="form-group">
+<textarea id="description" placeholder=" " required></textarea>
+<label>Description</label>
+</div>
+
+<button type="submit">Submit Ticket</button>
+
+</form>
+</div>
+
+<div class="modal" id="successModal">
+<div class="modal-content">
+
+<div class="checkmark"></div>
+
+<h3>Ticket Created Successfully!</h3>
+
+<p id="modalTicketId"></p>
+
+<button onclick="closeModal()">Close</button>
+
+<button onclick="goToLogin()">Login</button>
+
+</div>
+</div>
+
+<script>
+
+if(localStorage.getItem("theme")==="light"){
+document.body.classList.add("light");
+}
+
+function toggleMode(){
+document.body.classList.toggle("light");
+
+localStorage.setItem(
+"theme",
+document.body.classList.contains("light") ? "light":"dark"
+);
+}
+
+function generateTicketID(){
+return "TKT-"+Math.floor(1000+Math.random()*9000);
+}
+
+document.getElementById("ticketId").innerText =
+"Ticket ID: "+generateTicketID();
+
+document.getElementById("ticketForm")
+.addEventListener("submit",async function(e){
+
+e.preventDefault();
+
+const payload={
+title:document.getElementById("title").value,
+priority:document.getElementById("priority").value,
+category:document.getElementById("category").value,
+description: document.getElementById("description").value
+};
+
+try{
+
+const response=await fetch("/api/tickets",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(payload)
+});
+
+const data=await response.json();
+
+if(!response.ok){
+throw new Error(data.error || "Ticket creation failed");
+}
+
+document.getElementById("modalTicketId").innerText =
+"Ticket No: TKT-"+data.ticketId;
+
+document.getElementById("successModal")
+.classList.add("active");
+
+document.getElementById("ticketForm").reset();
+
+}catch(err){
+
+console.error(err);
+alert("Error creating ticket");
+
+}
+
+});
+
+function closeModal(){
+document.getElementById("successModal")
+.classList.remove("active");
+}
+
+function goToLogin(){
+window.location.href="role.html";
+}
+
+</script>
+
+</body>
+</html>

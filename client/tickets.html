@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tickets</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    background: #f4f6f9;
+    overflow-x: hidden;
+}
+
+/* SIDEBAR (SAME AS DASHBOARD) */
+.sidebar {
+    width: 230px;
+    background: #1f2937;
+    color: white;
+    height: 100vh;
+    padding: 20px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+.sidebar h2 {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.sidebar a {
+    display: block;
+    color: #d1d5db;
+    text-decoration: none;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 6px;
+    transition: 0.3s;
+}
+
+.sidebar a:hover {
+    background: #374151;
+    color: white;
+}
+
+.logout-btn {
+    color: #f87171 !important;
+}
+
+.logout-btn:hover {
+    background: #7f1d1d;
+    color: white !important;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid #374151;
+    margin: 20px 0;
+}
+
+/* MAIN (SAME SHIFT EFFECT) */
+.main {
+    flex: 1;
+    margin-left: 0;
+    padding: 30px 40px;
+    transition: margin-left 0.3s ease;
+    width: 100%;
+}
+
+.main.full {
+    margin-left: 230px;
+}
+
+/* TOPBAR */
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.menu-btn {
+    background: #1f2937;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.menu-btn:hover {
+    background: #111827;
+}
+
+/* CARD */
+.card {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+/* TABLE */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #f9fafb;
+}
+
+/* BUTTONS */
+button {
+    padding: 6px 10px;
+    margin: 2px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: scale(1.05);
+}
+
+.edit { background: orange; color: white; }
+.delete { background: red; color: white; }
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar collapsed" id="sidebar">
+    <h2>Support Admin</h2>
+    <a href="adminDashboard.html">Dashboard</a>
+    <a href="tickets.html">Tickets</a>
+    <a href="operators.html">Operators</a>
+    <a href="settings.html">Settings</a>
+    <hr>
+    <a href="#" onclick="logout()" class="logout-btn">Logout</a>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <button class="menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+        <h1>Tickets Management</h1>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="card">
+        <h3>Search Tickets</h3>
+        <input 
+            id="searchInput" 
+            placeholder="Search by title, description or status..."
+            style="width: 300px; padding: 8px; border-radius: 6px; border: 1px solid #ccc;"
+            onkeyup="searchTickets()"
+        >
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+        <h3>All Tickets</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="ticketList"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+let tickets = [];
+
+// LOAD DATA
+function displayTickets() {
+    fetch("/api/tickets")
+        .then(res => res.json())
+        .then(data => {
+            tickets = data;
+            renderTickets(tickets);
+        });
+}
+
+// SEARCH
+function searchTickets() {
+    let keyword = document.getElementById("searchInput").value.toLowerCase();
+
+    let filtered = tickets.filter(t => 
+        (t.title && t.title.toLowerCase().includes(keyword)) ||
+        (t.description && t.description.toLowerCase().includes(keyword)) ||
+        (t.status && t.status.toLowerCase().includes(keyword))
+    );
+
+    renderTickets(filtered);
+}
+
+// RENDER
+function renderTickets(data) {
+    let output = "";
+
+    if (data.length === 0) {
+        output = `<tr><td colspan="5" style="text-align:center;">No tickets found</td></tr>`;
+    } else {
+        data.forEach(ticket => {
+            output += `
+            <tr>
+                <td>${ticket.id}</td>
+                <td>${ticket.title}</td>
+                <td>${ticket.description || "-"}</td>
+                <td>${ticket.status}</td>
+                <td>
+                    <button class="edit" onclick="editTicket(${ticket.id}, '${ticket.title}', \`${ticket.description || ""}\`)">Edit</button>
+                    <button class="delete" onclick="deleteTicket(${ticket.id})">Delete</button>
+                </td>
+            </tr>
+            `;
+        });
+    }
+
+    document.getElementById("ticketList").innerHTML = output;
+}
+
+// EDIT
+function editTicket(id, oldTitle, oldDesc) {
+    let newTitle = prompt("Edit title:", oldTitle);
+    if (!newTitle) return;
+
+    let newDesc = prompt("Edit description:", oldDesc);
+
+    fetch(`/api/tickets/${id}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            title: newTitle,
+            description: newDesc
+        })
+    })
+    .then(() => displayTickets());
+}
+
+// DELETE
+function deleteTicket(id) {
+    if (!confirm("Delete ticket?")) return;
+
+    fetch(`/api/tickets/${id}`, { method: "DELETE" })
+    .then(() => displayTickets());
+}
+
+// SAME SMOOTH FUNCTION AS DASHBOARD
+function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+    document.getElementById("main").classList.toggle("full");
+}
+
+// LOGOUT
+function logout() {
+    window.location.href = "role.html";
+}
+
+// LOAD
+displayTickets();
+</script>
+
+</body>
+</html>

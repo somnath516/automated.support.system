@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Role | Ticket System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1f4037, #99f2c8);
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 50px;
+            border-radius: 20px;
+            width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 30px;
+            color: gray;
+        }
+
+        .cards {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .card {
+            flex: 1;
+            padding: 25px;
+            border-radius: 15px;
+            background: #f4f6f9;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: #2c3e50;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .card span {
+            font-size: 45px;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Automated Support System</h2>
+    <p>Select Your Role</p>
+
+    <div class="cards">
+
+        <div class="card" onclick="goToLogin('admin')">
+            <span>🛠</span>
+            <h3>Admin Login</h3>
+        </div>
+
+        <div class="card" onclick="goToLogin('operator')">
+            <span>👨‍💻</span>
+            <h3>Operator Login</h3>
+        </div>
+
+        <div class="card" onclick="goToTicket()">
+            <span>🎫</span>
+            <h3>Raise Ticket</h3>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        © 2026 Automated Support System
+    </div>
+</div>
+
+<script>
+function goToLogin(role) {
+    window.location.href = "login.html?role=" + role;
+}
+
+function goToTicket() {
+    window.location.href = "createTicket.html";
+}
+</script>
+
+</body>
+</html>

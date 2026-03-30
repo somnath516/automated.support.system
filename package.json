@@ -1,0 +1,28 @@
+{
+  "name": "automated-support-system",
+  "version": "1.0.0",
+  "description": "Automated Ticket Assignment System",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "ticket-system",
+    "helpdesk",
+    "support"
+  ],
+  "author": "Somnath",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "socket.io": "^4.8.3",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
