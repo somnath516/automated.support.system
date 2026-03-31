@@ -17,10 +17,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve all HTML/CSS/JS from "client" folder
+// Serve frontend
 app.use(express.static(path.join(__dirname, "client")));
 
-// Optional: make role.html the default page
+// Default page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "client/role.html"));
 });
@@ -37,7 +37,7 @@ const db = new sqlite3.Database("tickets.db", (err) => {
 });
 
 /* ================================
-   CREATE TABLES IF NOT EXIST
+   CREATE TABLES
 ================================ */
 db.serialize(() => {
   db.run(`
@@ -48,7 +48,7 @@ db.serialize(() => {
       category TEXT,
       description TEXT,
       status TEXT DEFAULT 'Assigned',
-      assignedTo TEXT DEFAULT 'operator'
+      assignedTo TEXT DEFAULT 'operator1'
     )
   `);
 
@@ -129,12 +129,15 @@ app.post("/api/login", (req, res) => {
 /* ================================
    TICKETS APIs
 ================================ */
+
+// Create ticket
 app.post("/api/tickets", (req, res) => {
   const { title, priority, category, description, assignedTo } = req.body;
+
   db.run(
     `INSERT INTO tickets (title, priority, category, description, assignedTo)
      VALUES (?, ?, ?, ?, ?)`,
-    [title, priority, category, description, assignedTo || "operator"],
+    [title, priority, category, description, assignedTo || "operator1"],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
 
@@ -145,7 +148,7 @@ app.post("/api/tickets", (req, res) => {
         category,
         description,
         status: "Assigned",
-        assignedTo: assignedTo || "operator"
+        assignedTo: assignedTo || "operator1"
       };
 
       io.emit("newTicket", newTicket);
@@ -154,6 +157,7 @@ app.post("/api/tickets", (req, res) => {
   );
 });
 
+// Get all tickets
 app.get("/api/tickets", (req, res) => {
   db.all("SELECT * FROM tickets", (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -161,6 +165,7 @@ app.get("/api/tickets", (req, res) => {
   });
 });
 
+// Get tickets by operator
 app.get("/api/tickets/operator/:name", (req, res) => {
   db.all(
     "SELECT * FROM tickets WHERE assignedTo=?",
@@ -172,8 +177,10 @@ app.get("/api/tickets/operator/:name", (req, res) => {
   );
 });
 
+// Edit ticket
 app.put("/api/tickets/:id", (req, res) => {
   const { title, description } = req.body;
+
   db.run(
     "UPDATE tickets SET title=?, description=? WHERE id=?",
     [title, description, req.params.id],
@@ -184,9 +191,34 @@ app.put("/api/tickets/:id", (req, res) => {
   );
 });
 
+// ✅ 🔥 IMPORTANT FIX: Update status (START / CLOSE button)
+app.put("/api/tickets/:id/status", (req, res) => {
+  const { status } = req.body;
+  const id = req.params.id;
+
+  db.run(
+    "UPDATE tickets SET status=? WHERE id=?",
+    [status, id],
+    function (err) {
+      if (err) {
+        console.error("❌ Status update error:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
+
+      // 🔥 real-time update
+      io.emit("ticketStatusUpdated");
+
+      res.json({ success: true });
+    }
+  );
+});
+
+// Delete ticket
 app.delete("/api/tickets/:id", (req, res) => {
   db.run("DELETE FROM tickets WHERE id=?", [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
+
+    io.emit("ticketStatusUpdated");
     res.json({ success: true });
   });
 });
@@ -196,7 +228,10 @@ app.delete("/api/tickets/:id", (req, res) => {
 ================================ */
 io.on("connection", (socket) => {
   console.log("User connected");
-  socket.on("disconnect", () => console.log("User disconnected"));
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
 });
 
 /* ================================
