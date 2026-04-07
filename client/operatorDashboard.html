@@ -292,133 +292,175 @@ button.action{
 
 <script>
 const socket = io();
+
+/* ✅ FIX 1: Validate operator */
 const operatorName = localStorage.getItem("operatorName");
 
+if (!operatorName) {
+  alert("Session expired. Please login again.");
+  window.location.href = "role.html";
+}
+
+/* ===============================
+   LOAD TICKETS
+================================ */
 async function loadTickets(){
+  try{
+    const res = await fetch(`/api/tickets/operator/${operatorName}`, {
+      cache: "no-store" // ✅ FIX 2: prevent caching
+    });
 
-  const res = await fetch(`/api/tickets/operator/${operatorName}`);
-  const tickets = await res.json();
+    if(!res.ok) throw new Error("Failed to fetch tickets");
 
-  const total = tickets.length;
-  const inProgress = tickets.filter(t => t.status === "In Progress").length;
-  const closed = tickets.filter(t => t.status === "Closed").length;
+    const tickets = await res.json();
 
-  document.getElementById("totalAssigned").innerText = total;
-  document.getElementById("inProgress").innerText = inProgress;
-  document.getElementById("closedCount").innerText = closed;
-  document.getElementById("completionRate").innerText =
-        total ? Math.round((closed/total)*100)+"%" : "0%";
+    const total = tickets.length;
+    const inProgress = tickets.filter(t => t.status === "In Progress").length;
+    const closed = tickets.filter(t => t.status === "Closed").length;
 
-  /* ✅ FIX 1: TABLE DATA BACK */
-  const tbody = document.getElementById("ticketTable");
-  tbody.innerHTML = "";
+    document.getElementById("totalAssigned").innerText = total;
+    document.getElementById("inProgress").innerText = inProgress;
+    document.getElementById("closedCount").innerText = closed;
+    document.getElementById("completionRate").innerText =
+      total ? Math.round((closed/total)*100)+"%" : "0%";
 
-  tickets.forEach((ticket,i) => {
+    /* TABLE */
+    const tbody = document.getElementById("ticketTable");
+    tbody.innerHTML = "";
 
-    let actionButtons = "";
+    tickets.forEach((ticket,i) => {
 
-    if(ticket.status === "Assigned"){
-      actionButtons = `<button class="action progress-btn"
-      onclick="updateStatus(${ticket.id},'In Progress')">Start</button>`;
-    }
-    else if(ticket.status === "In Progress"){
-      actionButtons = `<button class="action close-btn"
-      onclick="updateStatus(${ticket.id},'Closed')">Close</button>`;
-    }
-    else{
-      actionButtons = "Completed";
-    }
+      let actionButtons = "";
 
-    tbody.innerHTML += `
-    <tr>
-      <td>${i+1}</td>
-      <td>${ticket.title}</td>
-      <td><span class="badge ${ticket.priority}">${ticket.priority}</span></td>
-      <td>${ticket.status}</td>
-      <td>${actionButtons}</td>
-    </tr>`;
-  });
+      if(ticket.status === "Assigned"){
+        actionButtons = `<button class="action progress-btn"
+        onclick="updateStatus(${ticket.id},'In Progress')">Start</button>`;
+      }
+      else if(ticket.status === "In Progress"){
+        actionButtons = `<button class="action close-btn"
+        onclick="updateStatus(${ticket.id},'Closed')">Close</button>`;
+      }
+      else{
+        actionButtons = "Completed";
+      }
 
-  /* ✅ FIX 2: RECENT TICKETS BACK */
-  const recentDiv = document.getElementById("recentTickets");
-  recentDiv.innerHTML = "";
+      tbody.innerHTML += `
+      <tr>
+        <td>${i+1}</td>
+        <td>${ticket.title}</td>
+        <td><span class="badge ${ticket.priority}">${ticket.priority}</span></td>
+        <td>${ticket.status}</td>
+        <td>${actionButtons}</td>
+      </tr>`;
+    });
 
-  tickets.slice(-5).reverse().forEach(ticket => {
+    /* RECENT */
+    const recentDiv = document.getElementById("recentTickets");
+    recentDiv.innerHTML = "";
 
-    let statusClass = "status-open";
+    tickets.slice(-5).reverse().forEach(ticket => {
 
-    if(ticket.status === "Assigned") statusClass = "status-open";
-    else if(ticket.status === "In Progress") statusClass = "status-progress";
-    else if(ticket.status === "Closed") statusClass = "status-closed";
+      let statusClass = "status-open";
 
-    recentDiv.innerHTML += `
-    <div class="recent-ticket-row">
-      <div>
-        <strong>${ticket.title}</strong><br>
-        <small>${ticket.status}</small>
-      </div>
-      <span class="status-badge ${statusClass}">${ticket.status}</span>
-    </div>`;
-  });
+      if(ticket.status === "Assigned") statusClass = "status-open";
+      else if(ticket.status === "In Progress") statusClass = "status-progress";
+      else if(ticket.status === "Closed") statusClass = "status-closed";
 
-  /* charts */
-  const high = tickets.filter(t => t.priority==="High").length;
-  const medium = tickets.filter(t => t.priority==="Medium").length;
-  const low = tickets.filter(t => t.priority==="Low").length;
+      recentDiv.innerHTML += `
+      <div class="recent-ticket-row">
+        <div>
+          <strong>${ticket.title}</strong><br>
+          <small>${ticket.status}</small>
+        </div>
+        <span class="status-badge ${statusClass}">${ticket.status}</span>
+      </div>`;
+    });
 
-  if(window.priorityChartObj) window.priorityChartObj.destroy();
+    /* CHART */
+    const high = tickets.filter(t => t.priority==="High").length;
+    const medium = tickets.filter(t => t.priority==="Medium").length;
+    const low = tickets.filter(t => t.priority==="Low").length;
 
-window.priorityChartObj = new Chart(document.getElementById("priorityChart"), {
-  type:'doughnut',
-  data:{
-    labels:["High","Medium","Low"],
-    datasets:[{
-      data:[high,medium,low],
-      backgroundColor:["#ef4444","#f59e0b","#10b981"]
-    }]
-  },
-  options:{
-    rotation:-90,
-    circumference:180,
-    cutout:"65%",
-    maintainAspectRatio:false,
-    layout:{ padding:{ bottom:20 }},
-    plugins:{ legend:{ position:"bottom" }}
+    if(window.priorityChartObj) window.priorityChartObj.destroy();
+
+    window.priorityChartObj = new Chart(document.getElementById("priorityChart"), {
+      type:'doughnut',
+      data:{
+        labels:["High","Medium","Low"],
+        datasets:[{
+          data:[high,medium,low],
+          backgroundColor:["#ef4444","#f59e0b","#10b981"]
+        }]
+      },
+      options:{
+        rotation:-90,
+        circumference:180,
+        cutout:"65%",
+        maintainAspectRatio:false,
+        layout:{ padding:{ bottom:20 }},
+        plugins:{ legend:{ position:"bottom" }}
+      }
+    });
+
+    if(window.avgChartObj) window.avgChartObj.destroy();
+
+    window.avgChartObj = new Chart(document.getElementById("avgChart"), {
+      type:'bar',
+      data:{
+        labels:["Week1","Week2","Week3","Week4"],
+        datasets:[{
+          label:"Tickets",
+          data:[1,2,3,2],
+          backgroundColor:"#22c55e",
+          borderRadius:8
+        }]
+      },
+      options:{
+        maintainAspectRatio:false,
+        plugins:{ legend:{ display:true }}
+      }
+    });
+
+  }catch(err){
+    console.error("❌ Load error:", err);
   }
+}
+
+/* ===============================
+   UPDATE STATUS
+================================ */
+async function updateStatus(id,status){
+  try{
+    const res = await fetch(`/api/tickets/${id}/status`,{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({status})
+    });
+
+    if(!res.ok) throw new Error("Update failed");
+
+    /* ✅ FIX 3: wait + reload */
+    await loadTickets();
+
+  }catch(err){
+    console.error("❌ Update error:", err);
+  }
+}
+
+/* ===============================
+   REALTIME
+================================ */
+socket.on("ticketStatusUpdated", () => {
+  loadTickets();
 });
 
-  if(window.avgChartObj) window.avgChartObj.destroy();
+socket.on("newTicket", () => {
+  loadTickets();
+});
 
-  /* ✅ FIX 3: ADD LABEL (removes "undefined") */
-  window.avgChartObj = new Chart(document.getElementById("avgChart"), {
-    type:'bar',
-    data:{
-      labels:["Week1","Week2","Week3","Week4"],
-      datasets:[{
-        label:"Tickets",
-        data:[1,2,3,2],
-        backgroundColor:"#22c55e",
-        borderRadius:8
-      }]
-    },
-    options:{
-      maintainAspectRatio:false,
-      plugins:{ legend:{ display:true }}
-    }
-  });
-}
-
-function updateStatus(id,status){
-  fetch(`/api/tickets/${id}/status`,{
-    method:"PUT",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({status})
-  }).then(()=>loadTickets());
-}
-
-socket.on("ticketStatusUpdated",loadTickets);
-socket.on("newTicket",loadTickets);
-
+/* ===============================
+   SIDEBAR
+================================ */
 function toggleSidebar(){
   const sidebar = document.getElementById("sidebar");
   const main = document.getElementById("main");
@@ -426,12 +468,19 @@ function toggleSidebar(){
   sidebar.classList.toggle("collapsed");
   main.classList.toggle("full");
 }
+
+/* ===============================
+   LOGOUT
+================================ */
 function logout(){
   localStorage.removeItem("operatorName");
   window.location.href = "role.html";
 }
 
-loadTickets();
+/* ===============================
+   INITIAL LOAD
+================================ */
+window.onload = loadTickets;
 </script>
 
 </body>
