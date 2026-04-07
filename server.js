@@ -8,7 +8,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ✅ Use dynamic PORT for Render, fallback to 3000 locally
 const PORT = process.env.PORT || 3000;
 
 /* ================================
@@ -16,11 +15,8 @@ const PORT = process.env.PORT || 3000;
 ================================ */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve frontend
 app.use(express.static(path.join(__dirname, "client")));
 
-// Default page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "client/role.html"));
 });
@@ -69,13 +65,11 @@ db.serialize(() => {
     )
   `);
 
-  // Default admin
   db.run(`
     INSERT OR IGNORE INTO settings (id, username, email, password)
     VALUES (1, 'admin', 'admin@email.com', 'admin123')
   `);
 
-  // Default operator
   db.run(`
     INSERT OR IGNORE INTO users (id, password, role)
     VALUES ('operator1', 'operator123', 'operator')
@@ -100,28 +94,28 @@ app.post("/api/login", (req, res) => {
           role: "admin",
           username: admin.username
         });
-      } else {
-        db.get(
-          "SELECT * FROM users WHERE id=? AND password=?",
-          [username, password],
-          (err, operator) => {
-            if (err) return res.status(500).json({ error: err.message });
-
-            if (operator) {
-              return res.json({
-                success: true,
-                role: operator.role,
-                username: operator.id
-              });
-            } else {
-              return res.status(401).json({
-                success: false,
-                message: "Invalid credentials"
-              });
-            }
-          }
-        );
       }
+
+      db.get(
+        "SELECT * FROM users WHERE id=? AND password=?",
+        [username, password],
+        (err, operator) => {
+          if (err) return res.status(500).json({ error: err.message });
+
+          if (operator) {
+            return res.json({
+              success: true,
+              role: "operator",
+              username: operator.id // IMPORTANT: must match assignedTo
+            });
+          }
+
+          return res.status(401).json({
+            success: false,
+            message: "Invalid credentials"
+          });
+        }
+      );
     }
   );
 });
@@ -130,14 +124,16 @@ app.post("/api/login", (req, res) => {
    TICKETS APIs
 ================================ */
 
-// Create ticket
+// ✅ CREATE TICKET
 app.post("/api/tickets", (req, res) => {
   const { title, priority, category, description, assignedTo } = req.body;
+
+  const assignedUser = assignedTo || "operator1";
 
   db.run(
     `INSERT INTO tickets (title, priority, category, description, assignedTo)
      VALUES (?, ?, ?, ?, ?)`,
-    [title, priority, category, description, assignedTo || "operator1"],
+    [title, priority, category, description, assignedUser],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
 
@@ -148,16 +144,18 @@ app.post("/api/tickets", (req, res) => {
         category,
         description,
         status: "Assigned",
-        assignedTo: assignedTo || "operator1"
+        assignedTo: assignedUser
       };
 
-      io.emit("newTicket", newTicket);
+      console.log("🆕 Ticket Created:", newTicket);
+
+      io.emit("newTicket", newTicket); // 🔥 notify all clients
       res.json({ success: true, ticketId: this.lastID });
     }
   );
 });
 
-// Get all tickets
+// ✅ GET ALL TICKETS (Admin)
 app.get("/api/tickets", (req, res) => {
   db.all("SELECT * FROM tickets", (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -165,19 +163,25 @@ app.get("/api/tickets", (req, res) => {
   });
 });
 
-// Get tickets by operator
+// ✅ GET OPERATOR TICKETS
 app.get("/api/tickets/operator/:name", (req, res) => {
+  const operatorName = req.params.name;
+
+  console.log("📥 Fetching tickets for:", operatorName);
+
   db.all(
     "SELECT * FROM tickets WHERE assignedTo=?",
-    [req.params.name],
+    [operatorName],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
+
+      console.log("📊 Tickets found:", rows.length);
       res.json(rows);
     }
   );
 });
 
-// Edit ticket
+// ✅ EDIT TICKET
 app.put("/api/tickets/:id", (req, res) => {
   const { title, description } = req.body;
 
@@ -186,12 +190,14 @@ app.put("/api/tickets/:id", (req, res) => {
     [title, description, req.params.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
+
+      io.emit("ticketStatusUpdated"); // 🔥 notify UI
       res.json({ success: true });
     }
   );
 });
 
-// ✅ 🔥 IMPORTANT FIX: Update status (START / CLOSE button)
+// ✅ UPDATE STATUS (CRITICAL)
 app.put("/api/tickets/:id/status", (req, res) => {
   const { status } = req.body;
   const id = req.params.id;
@@ -205,18 +211,21 @@ app.put("/api/tickets/:id/status", (req, res) => {
         return res.status(500).json({ error: err.message });
       }
 
-      // 🔥 real-time update
-      io.emit("ticketStatusUpdated");
+      console.log(`🔄 Ticket ${id} updated to ${status}`);
+
+      io.emit("ticketStatusUpdated"); // 🔥 REAL-TIME UPDATE
 
       res.json({ success: true });
     }
   );
 });
 
-// Delete ticket
+// ✅ DELETE TICKET
 app.delete("/api/tickets/:id", (req, res) => {
   db.run("DELETE FROM tickets WHERE id=?", [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
+
+    console.log("🗑️ Ticket deleted:", req.params.id);
 
     io.emit("ticketStatusUpdated");
     res.json({ success: true });
@@ -227,10 +236,10 @@ app.delete("/api/tickets/:id", (req, res) => {
    SOCKET.IO
 ================================ */
 io.on("connection", (socket) => {
-  console.log("User connected");
+  console.log("🔌 User connected");
 
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    console.log("❌ User disconnected");
   });
 });
 
