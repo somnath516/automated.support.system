@@ -12,6 +12,11 @@ const db = new sqlite3.Database("./tickets.db", (err) => {
 });
 
 /* ===============================
+   ENABLE FOREIGN KEYS (GOOD PRACTICE)
+================================ */
+db.run("PRAGMA foreign_keys = ON");
+
+/* ===============================
    CREATE TABLES + DEFAULT DATA
 ================================ */
 db.serialize(() => {
@@ -27,7 +32,7 @@ db.serialize(() => {
       description TEXT,
       priority TEXT CHECK(priority IN ('High','Medium','Low')) NOT NULL,
       category TEXT NOT NULL,
-      status TEXT DEFAULT 'Assigned',
+      status TEXT CHECK(status IN ('Assigned','In Progress','Completed')) DEFAULT 'Assigned',
       assignedTo TEXT NOT NULL,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -65,8 +70,8 @@ db.serialize(() => {
      INSERT DEFAULT USERS
   ================================ */
 
-  // Insert Admin if not exists
-  db.get("SELECT * FROM users WHERE id = ?", ["admin"], (err, row) => {
+  // Admin
+  db.get("SELECT id FROM users WHERE id = ?", ["admin"], (err, row) => {
     if (err) {
       console.error("❌ Admin check error:", err.message);
       return;
@@ -84,13 +89,11 @@ db.serialize(() => {
           }
         }
       );
-    } else {
-      console.log("ℹ️ Admin already exists");
     }
   });
 
-  // Insert Operator if not exists
-  db.get("SELECT * FROM users WHERE id = ?", ["operator"], (err, row) => {
+  // Operator
+  db.get("SELECT id FROM users WHERE id = ?", ["operator"], (err, row) => {
     if (err) {
       console.error("❌ Operator check error:", err.message);
       return;
@@ -108,12 +111,59 @@ db.serialize(() => {
           }
         }
       );
-    } else {
-      console.log("ℹ️ Operator already exists");
     }
   });
 
 });
+
+/* ===============================
+   HELPER FUNCTIONS (IMPORTANT)
+   👉 Use these instead of raw queries
+================================ */
+
+// Update ticket status (THIS is what you were missing logically)
+db.updateTicketStatus = (id, status, callback) => {
+  db.run(
+    "UPDATE tickets SET status = ? WHERE id = ?",
+    [status, id],
+    function (err) {
+      if (err) {
+        console.error("❌ Update error:", err.message);
+        callback(err);
+      } else {
+        console.log(`✅ Ticket ${id} updated to ${status}`);
+        callback(null, this.changes);
+      }
+    }
+  );
+};
+
+// Get all tickets
+db.getAllTickets = (callback) => {
+  db.all("SELECT * FROM tickets ORDER BY createdAt DESC", callback);
+};
+
+// Create ticket
+db.createTicket = (ticket, callback) => {
+  const { title, description, priority, category, assignedTo } = ticket;
+
+  db.run(
+    `
+    INSERT INTO tickets (title, description, priority, category, assignedTo)
+    VALUES (?, ?, ?, ?, ?)
+    `,
+    [title, description, priority, category, assignedTo],
+    function (err) {
+      if (err) {
+        console.error("❌ Insert error:", err.message);
+        callback(err);
+      } else {
+        console.log("✅ Ticket created with ID:", this.lastID);
+        callback(null, this.lastID);
+      }
+    }
+  );
+};
 
 /* ===============================
    EXPORT DATABASE
