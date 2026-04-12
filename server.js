@@ -32,7 +32,7 @@ app.get("/", (req, res) => {
 });
 
 /* ================================
-   DATABASE (ONLY ONE CONNECTION)
+   DATABASE
 ================================ */
 const db = require("./db");
 
@@ -42,6 +42,9 @@ const db = require("./db");
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
 
+  console.log("🔐 Login attempt:", username);
+
+  // Admin check
   db.get(
     "SELECT * FROM settings WHERE username=? AND password=?",
     [username, password],
@@ -56,6 +59,7 @@ app.post("/api/login", (req, res) => {
         });
       }
 
+      // Operator check
       db.get(
         "SELECT * FROM users WHERE id=? AND password=?",
         [username, password],
@@ -84,10 +88,12 @@ app.post("/api/login", (req, res) => {
    TICKETS APIs
 ================================ */
 
-// CREATE
+// CREATE TICKET
 app.post("/api/tickets", (req, res) => {
   const { title, priority, category, description, assignedTo } = req.body;
-  const assignedUser = assignedTo || "operator1";
+
+  // ✅ FIXED: operator instead of operator1
+  const assignedUser = assignedTo || "operator";
 
   db.run(
     `INSERT INTO tickets (title, priority, category, description, assignedTo)
@@ -106,13 +112,17 @@ app.post("/api/tickets", (req, res) => {
         assignedTo: assignedUser
       };
 
+      console.log("🆕 Ticket Created:", newTicket);
+
+      // 🔥 Real-time trigger
       io.emit("newTicket", newTicket);
+
       res.json({ success: true, ticketId: this.lastID });
     }
   );
 });
 
-// GET ALL
+// GET ALL TICKETS (Admin)
 app.get("/api/tickets", (req, res) => {
   db.all("SELECT * FROM tickets ORDER BY createdAt DESC", (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -120,13 +130,19 @@ app.get("/api/tickets", (req, res) => {
   });
 });
 
-// GET OPERATOR
+// GET OPERATOR TICKETS
 app.get("/api/tickets/operator/:name", (req, res) => {
+  const operatorName = req.params.name;
+
+  console.log("📥 Fetching tickets for:", operatorName);
+
   db.all(
     "SELECT * FROM tickets WHERE assignedTo=?",
-    [req.params.name],
+    [operatorName],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
+
+      console.log("📊 Tickets found:", rows.length);
       res.json(rows);
     }
   );
@@ -141,6 +157,8 @@ app.put("/api/tickets/:id", (req, res) => {
     [title, description, req.params.id],
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
+
+      console.log("✏️ Ticket updated:", req.params.id);
 
       io.emit("ticketStatusUpdated");
       res.json({ success: true });
@@ -158,16 +176,20 @@ app.put("/api/tickets/:id/status", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
 
+      console.log(`🔄 Ticket ${req.params.id} → ${status}`);
+
       io.emit("ticketStatusUpdated");
       res.json({ success: true });
     }
   );
 });
 
-// DELETE
+// DELETE TICKET
 app.delete("/api/tickets/:id", (req, res) => {
   db.run("DELETE FROM tickets WHERE id=?", [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
+
+    console.log("🗑️ Ticket deleted:", req.params.id);
 
     io.emit("ticketStatusUpdated");
     res.json({ success: true });
