@@ -1,5 +1,4 @@
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -9,6 +8,17 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
+
+/* ================================
+   GLOBAL ERROR HANDLING
+================================ */
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("❌ Unhandled Rejection:", err);
+});
 
 /* ================================
    MIDDLEWARE
@@ -22,59 +32,9 @@ app.get("/", (req, res) => {
 });
 
 /* ================================
-   DATABASE
+   DATABASE (ONLY ONE CONNECTION)
 ================================ */
-const db = new sqlite3.Database("tickets.db", (err) => {
-  if (err) {
-    console.error("❌ DB connection error:", err.message);
-  } else {
-    console.log("✅ SQLite Connected");
-  }
-});
-
-/* ================================
-   CREATE TABLES
-================================ */
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tickets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      priority TEXT,
-      category TEXT,
-      description TEXT,
-      status TEXT DEFAULT 'Assigned',
-      assignedTo TEXT DEFAULT 'operator1'
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS settings (
-      id INTEGER PRIMARY KEY,
-      username TEXT,
-      email TEXT,
-      password TEXT
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      password TEXT NOT NULL,
-      role TEXT CHECK(role IN ('operator')) NOT NULL
-    )
-  `);
-
-  db.run(`
-    INSERT OR IGNORE INTO settings (id, username, email, password)
-    VALUES (1, 'admin', 'admin@email.com', 'admin123')
-  `);
-
-  db.run(`
-    INSERT OR IGNORE INTO users (id, password, role)
-    VALUES ('operator1', 'operator123', 'operator')
-  `);
-});
+const db = require("./db");
 
 /* ================================
    LOGIN API
@@ -106,7 +66,7 @@ app.post("/api/login", (req, res) => {
             return res.json({
               success: true,
               role: "operator",
-              username: operator.id // IMPORTANT: must match assignedTo
+              username: operator.id
             });
           }
 
@@ -124,10 +84,9 @@ app.post("/api/login", (req, res) => {
    TICKETS APIs
 ================================ */
 
-// ✅ CREATE TICKET
+// CREATE
 app.post("/api/tickets", (req, res) => {
   const { title, priority, category, description, assignedTo } = req.body;
-
   const assignedUser = assignedTo || "operator1";
 
   db.run(
@@ -147,41 +106,33 @@ app.post("/api/tickets", (req, res) => {
         assignedTo: assignedUser
       };
 
-      console.log("🆕 Ticket Created:", newTicket);
-
-      io.emit("newTicket", newTicket); // 🔥 notify all clients
+      io.emit("newTicket", newTicket);
       res.json({ success: true, ticketId: this.lastID });
     }
   );
 });
 
-// ✅ GET ALL TICKETS (Admin)
+// GET ALL
 app.get("/api/tickets", (req, res) => {
-  db.all("SELECT * FROM tickets", (err, rows) => {
+  db.all("SELECT * FROM tickets ORDER BY createdAt DESC", (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-// ✅ GET OPERATOR TICKETS
+// GET OPERATOR
 app.get("/api/tickets/operator/:name", (req, res) => {
-  const operatorName = req.params.name;
-
-  console.log("📥 Fetching tickets for:", operatorName);
-
   db.all(
     "SELECT * FROM tickets WHERE assignedTo=?",
-    [operatorName],
+    [req.params.name],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
-
-      console.log("📊 Tickets found:", rows.length);
       res.json(rows);
     }
   );
 });
 
-// ✅ EDIT TICKET
+// UPDATE TICKET
 app.put("/api/tickets/:id", (req, res) => {
   const { title, description } = req.body;
 
@@ -191,41 +142,32 @@ app.put("/api/tickets/:id", (req, res) => {
     (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      io.emit("ticketStatusUpdated"); // 🔥 notify UI
+      io.emit("ticketStatusUpdated");
       res.json({ success: true });
     }
   );
 });
 
-// ✅ UPDATE STATUS (CRITICAL)
+// UPDATE STATUS
 app.put("/api/tickets/:id/status", (req, res) => {
   const { status } = req.body;
-  const id = req.params.id;
 
   db.run(
     "UPDATE tickets SET status=? WHERE id=?",
-    [status, id],
+    [status, req.params.id],
     function (err) {
-      if (err) {
-        console.error("❌ Status update error:", err.message);
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
 
-      console.log(`🔄 Ticket ${id} updated to ${status}`);
-
-      io.emit("ticketStatusUpdated"); // 🔥 REAL-TIME UPDATE
-
+      io.emit("ticketStatusUpdated");
       res.json({ success: true });
     }
   );
 });
 
-// ✅ DELETE TICKET
+// DELETE
 app.delete("/api/tickets/:id", (req, res) => {
   db.run("DELETE FROM tickets WHERE id=?", [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
-
-    console.log("🗑️ Ticket deleted:", req.params.id);
 
     io.emit("ticketStatusUpdated");
     res.json({ success: true });
