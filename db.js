@@ -13,7 +13,6 @@ if (fs.existsSync(dbPath)) {
   try {
     const stats = fs.statSync(dbPath);
 
-    // If file is too small → likely corrupted
     if (stats.size < 1000) {
       console.log("⚠️ Corrupted DB detected. Deleting...");
       fs.unlinkSync(dbPath);
@@ -47,12 +46,14 @@ db.on("error", (err) => {
 ================================ */
 db.serialize(() => {
 
-  // Foreign keys
+  // Enable foreign keys
   db.run("PRAGMA foreign_keys = ON", (err) => {
     if (err) console.error("❌ PRAGMA error:", err.message);
   });
 
-  /* USERS TABLE */
+  /* ===============================
+     USERS TABLE
+  ================================ */
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -64,7 +65,9 @@ db.serialize(() => {
     else console.log("✅ Users table ready");
   });
 
-  /* TICKETS TABLE */
+  /* ===============================
+     TICKETS TABLE
+  ================================ */
   db.run(`
     CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +84,9 @@ db.serialize(() => {
     else console.log("✅ Tickets table ready");
   });
 
-  /* SETTINGS TABLE */
+  /* ===============================
+     SETTINGS TABLE
+  ================================ */
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY,
@@ -91,9 +96,11 @@ db.serialize(() => {
     )
   `);
 
-  /* DEFAULT DATA */
+  /* ===============================
+     DEFAULT USERS
+  ================================ */
 
-  // Admin user
+  // Admin
   db.get("SELECT id FROM users WHERE id = ?", ["admin"], (err, row) => {
     if (err) return console.error("❌ Admin check error:", err.message);
 
@@ -125,11 +132,88 @@ db.serialize(() => {
     }
   });
 
-  // Admin settings
+  /* ===============================
+     ADMIN SETTINGS
+  ================================ */
   db.run(`
     INSERT OR IGNORE INTO settings (id, username, email, password)
     VALUES (1, 'admin', 'admin@email.com', 'admin123')
   `);
+
+  /* ===============================
+     REALISTIC DATA GENERATION (1200)
+  ================================ */
+  db.get("SELECT COUNT(*) as count FROM tickets", (err, row) => {
+    if (err) return console.error("❌ Count error:", err.message);
+
+    if (row.count === 0) {
+      console.log("📦 Generating realistic tickets...");
+
+      const titles = [
+        "Login issue", "System crash", "Network failure",
+        "Printer not working", "Slow performance",
+        "Software install error", "Access denied",
+        "Database timeout", "UI bug", "File upload failed"
+      ];
+
+      const descriptions = [
+        "User unable to complete task",
+        "Unexpected system behavior",
+        "Connection lost intermittently",
+        "Device not responding",
+        "Performance degradation noticed",
+        "Application not opening",
+        "Permission issue",
+        "Server response delayed",
+        "Visual glitch in UI",
+        "Operation failed during execution"
+      ];
+
+      const priorities = ["High", "Medium", "Low"];
+      const categories = ["Software", "Hardware", "Network", "Security"];
+
+      const statuses = [
+        "Assigned","Assigned","Assigned","Assigned","Assigned",
+        "In Progress","In Progress","In Progress",
+        "Completed","Completed"
+      ];
+
+      const stmt = db.prepare(`
+        INSERT INTO tickets 
+        (title, description, priority, category, status, assignedTo, createdAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      for (let i = 1; i <= 1200; i++) {
+
+        const title = titles[Math.floor(Math.random() * titles.length)];
+        const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+        const priority = priorities[Math.floor(Math.random() * priorities.length)];
+        const category = categories[Math.floor(Math.random() * categories.length)];
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+        const daysAgo = Math.floor(Math.random() * 30);
+        const createdAt = new Date(Date.now() - daysAgo * 86400000)
+          .toISOString()
+          .replace("T", " ")
+          .slice(0, 19);
+
+        stmt.run(
+          `${title} #${i}`,
+          description,
+          priority,
+          category,
+          status,
+          "operator",
+          createdAt
+        );
+      }
+
+      stmt.finalize();
+
+      console.log("✅ 1200 realistic tickets inserted");
+    }
+  });
 
 });
 
