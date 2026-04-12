@@ -46,28 +46,18 @@ db.on("error", (err) => {
 ================================ */
 db.serialize(() => {
 
-  // Enable foreign keys
-  db.run("PRAGMA foreign_keys = ON", (err) => {
-    if (err) console.error("❌ PRAGMA error:", err.message);
-  });
+  db.run("PRAGMA foreign_keys = ON");
 
-  /* ===============================
-     USERS TABLE
-  ================================ */
+  /* USERS TABLE */
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       password TEXT NOT NULL,
       role TEXT CHECK(role IN ('admin','operator')) NOT NULL
     )
-  `, (err) => {
-    if (err) console.error("❌ Users table error:", err.message);
-    else console.log("✅ Users table ready");
-  });
+  `);
 
-  /* ===============================
-     TICKETS TABLE
-  ================================ */
+  /* TICKETS TABLE */
   db.run(`
     CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,14 +69,9 @@ db.serialize(() => {
       assignedTo TEXT NOT NULL,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-  `, (err) => {
-    if (err) console.error("❌ Tickets table error:", err.message);
-    else console.log("✅ Tickets table ready");
-  });
+  `);
 
-  /* ===============================
-     SETTINGS TABLE
-  ================================ */
+  /* SETTINGS TABLE */
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY,
@@ -96,86 +81,65 @@ db.serialize(() => {
     )
   `);
 
-  /* ===============================
-     DEFAULT USERS
-  ================================ */
+  /* DEFAULT USERS */
 
-  // Admin
   db.get("SELECT id FROM users WHERE id = ?", ["admin"], (err, row) => {
-    if (err) return console.error("❌ Admin check error:", err.message);
-
     if (!row) {
       db.run(
         "INSERT INTO users (id, password, role) VALUES (?, ?, ?)",
-        ["admin", "admin123", "admin"],
-        (err) => {
-          if (err) console.error("❌ Admin insert error:", err.message);
-          else console.log("✅ Default admin created");
-        }
+        ["admin", "admin123", "admin"]
       );
     }
   });
 
-  // Operator
   db.get("SELECT id FROM users WHERE id = ?", ["operator"], (err, row) => {
-    if (err) return console.error("❌ Operator check error:", err.message);
-
     if (!row) {
       db.run(
         "INSERT INTO users (id, password, role) VALUES (?, ?, ?)",
-        ["operator", "operator123", "operator"],
-        (err) => {
-          if (err) console.error("❌ Operator insert error:", err.message);
-          else console.log("✅ Default operator created");
-        }
+        ["operator", "operator123", "operator"]
       );
     }
   });
 
-  /* ===============================
-     ADMIN SETTINGS
-  ================================ */
   db.run(`
     INSERT OR IGNORE INTO settings (id, username, email, password)
     VALUES (1, 'admin', 'admin@email.com', 'admin123')
   `);
 
   /* ===============================
-     REALISTIC DATA GENERATION (1200)
+     ADVANCED REALISTIC DATA (1200)
   ================================ */
   db.get("SELECT COUNT(*) as count FROM tickets", (err, row) => {
-    if (err) return console.error("❌ Count error:", err.message);
 
     if (row.count === 0) {
-      console.log("📦 Generating realistic tickets...");
+      console.log("📦 Generating advanced realistic tickets...");
 
-      const titles = [
+      const issues = [
         "Login issue", "System crash", "Network failure",
         "Printer not working", "Slow performance",
-        "Software install error", "Access denied",
-        "Database timeout", "UI bug", "File upload failed"
+        "Access denied", "Database timeout",
+        "UI bug", "File upload failed", "Server error"
       ];
 
-      const descriptions = [
-        "User unable to complete task",
-        "Unexpected system behavior",
-        "Connection lost intermittently",
-        "Device not responding",
-        "Performance degradation noticed",
-        "Application not opening",
-        "Permission issue",
-        "Server response delayed",
-        "Visual glitch in UI",
-        "Operation failed during execution"
+      const locations = [
+        "HR portal", "Admin dashboard", "Lab 1", "Lab 2",
+        "Office PC", "Server room", "Reception system",
+        "Finance system", "Student portal", "Main server"
+      ];
+
+      const actions = [
+        "while logging in", "during file upload",
+        "when opening application", "after update",
+        "randomly", "during peak hours",
+        "after restart", "while processing request"
       ];
 
       const priorities = ["High", "Medium", "Low"];
       const categories = ["Software", "Hardware", "Network", "Security"];
 
       const statuses = [
-        "Assigned","Assigned","Assigned","Assigned","Assigned",
-        "In Progress","In Progress","In Progress",
-        "Completed","Completed"
+        "Assigned","Assigned","Assigned","Assigned",
+        "In Progress","In Progress","Completed"
       ];
 
       const stmt = db.prepare(`
@@ -186,20 +150,25 @@ db.serialize(() => {
 
       for (let i = 1; i <= 1200; i++) {
 
-        const title = titles[Math.floor(Math.random() * titles.length)];
-        const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+        const issue = issues[Math.floor(Math.random() * issues.length)];
+        const location = locations[Math.floor(Math.random() * locations.length)];
+        const action = actions[Math.floor(Math.random() * actions.length)];
+
+        const title = `${issue} in ${location}`;
+        const description = `${issue} occurred ${action} at ${location}`;
+
         const priority = priorities[Math.floor(Math.random() * priorities.length)];
         const category = categories[Math.floor(Math.random() * categories.length)];
         const status = statuses[Math.floor(Math.random() * statuses.length)];
 
-        const daysAgo = Math.floor(Math.random() * 30);
-        const createdAt = new Date(Date.now() - daysAgo * 86400000)
+        const timeOffset = Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000);
+        const createdAt = new Date(Date.now() - timeOffset)
           .toISOString()
           .replace("T", " ")
           .slice(0, 19);
 
         stmt.run(
-          `${title} #${i}`,
+          title,
           description,
           priority,
           category,
@@ -211,7 +180,7 @@ db.serialize(() => {
 
       stmt.finalize();
 
-      console.log("✅ 1200 realistic tickets inserted");
+      console.log("✅ 1200 advanced realistic tickets inserted");
     }
   });
 
