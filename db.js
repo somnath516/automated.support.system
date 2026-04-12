@@ -116,7 +116,7 @@ db.serialize(() => {
     if (!row) {
       db.run(
         "INSERT INTO users (id, password, role) VALUES (?, ?, ?)",
-        ["operator1", "operator123", "operator"],
+        ["operator", "operator123", "operator"],
         (err) => {
           if (err) console.error("❌ Operator insert error:", err.message);
           else console.log("✅ Default operator created");
