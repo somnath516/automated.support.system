@@ -110,7 +110,7 @@ db.serialize(() => {
   });
 
   // Operator
-  db.get("SELECT id FROM users WHERE id = ?", ["operator1"], (err, row) => {
+  db.get("SELECT id FROM users WHERE id = ?", ["operator"], (err, row) => {
     if (err) return console.error("❌ Operator check error:", err.message);
 
     if (!row) {
