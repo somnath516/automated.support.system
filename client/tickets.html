@@ -139,6 +139,27 @@ button:hover {
 
 .edit { background: orange; color: white; }
 .delete { background: red; color: white; }
+/* DARK MODE */
+body.dark {
+    background: #111827;
+    color: #f9fafb;
+}
+body.dark .card {
+    background: #1f2937;
+}
+body.dark th {
+    background: #374151;
+    color: #f9fafb;
+}
+body.dark td { border-bottom-color: #374151; }
+body.dark .sidebar { background:#020617; }
+body.dark .sidebar a { color:#d1d5db; }
+body.dark input { background:#374151; color:#f9fafb; border-color:#555; }
+
+body.dark .logout-btn { color:#f87171 !important; }
+body.dark button.edit { background: #f59e0b; }
+body.dark button.delete { background: #ef4444; }
+
 </style>
 </head>
 
@@ -281,6 +302,11 @@ function toggleSidebar() {
 // LOGOUT
 function logout() {
     window.location.href = "role.html";
+}
+
+// Apply dark mode
+if (localStorage.getItem("darkMode") === "enabled") {
+    document.body.classList.add("dark");
 }
 
 // LOAD

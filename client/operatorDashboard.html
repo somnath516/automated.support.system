@@ -159,6 +159,16 @@ body{
   justify-content:space-between;
 }
 
+/* Dark mode */
+body.dark{ background:#111827; color:#f9fafb; }
+body.dark .sidebar{ background:#020617; }
+body.dark .sidebar a:hover{ background:#374151; color:#fff; }
+body.dark .kpi, body.dark .block, body.dark .chart-box, body.dark .recent-box{ background:#1f2937; }
+body.dark .recent-ticket-row{ background:#111827; }
+body.dark .table-container thead th{ background:#374151; }
+body.dark .recent-box::-webkit-scrollbar-thumb,
+body.dark #recentTickets::-webkit-scrollbar-thumb{ background:#4b5563; }
+
 .chart-box canvas{
   width:100% !important;
   height:100% !important;
@@ -293,6 +303,11 @@ button.action{
 
 <script>
 const socket = io();
+
+// Apply dark mode
+if (localStorage.getItem("darkMode") === "enabled") {
+  document.body.classList.add("dark");
+}
 
 /* ✅ FIX 1: Validate operator */
 const operatorName = localStorage.getItem("operatorName") || localStorage.getItem("username");
