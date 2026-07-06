@@ -85,6 +85,98 @@ app.post("/api/login", (req, res) => {
 });
 
 /* ================================
+   OPERATORS APIs
+================================ */
+
+// GET all operators
+app.get("/api/operators", (req, res) => {
+  db.all("SELECT id, name, role FROM operators ORDER BY id DESC", (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// ADD operator
+app.post("/api/operators", (req, res) => {
+  const { name, role } = req.body;
+  if (!name || !role) return res.status(400).json({ error: "name and role are required" });
+
+  db.run(
+    "INSERT INTO operators (name, role) VALUES (?, ?)",
+    [name, role],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, id: this.lastID });
+    }
+  );
+});
+
+// DELETE operator
+app.delete("/api/operators/:id", (req, res) => {
+  db.run("DELETE FROM operators WHERE id=?", [req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: this.changes > 0 });
+  });
+});
+
+/* ================================
+   SETTINGS APIs
+================================ */
+
+// GET SETTINGS (admin only in this simple app)
+app.get("/api/settings", (req, res) => {
+  db.get(
+    "SELECT username, email, password FROM settings WHERE id=1",
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!row) return res.status(404).json({ error: "Settings not found" });
+      res.json({
+        username: row.username,
+        email: row.email,
+        // do not expose password to frontend
+        success: true
+      });
+    }
+  );
+});
+
+// UPDATE PROFILE
+app.put("/api/settings/profile", (req, res) => {
+  const { username, email } = req.body;
+
+  if (!username || !email) {
+    return res.status(400).json({ error: "username and email are required" });
+  }
+
+  db.run(
+    "UPDATE settings SET username=?, email=? WHERE id=1",
+    [username, email],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: this.changes > 0 });
+    }
+  );
+});
+
+// UPDATE PASSWORD
+app.put("/api/settings/password", (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ error: "password is required" });
+  }
+
+  db.run(
+    "UPDATE settings SET password=? WHERE id=1",
+    [password],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: this.changes > 0 });
+    }
+  );
+});
+
+/* ================================
    TICKETS APIs
 ================================ */
 

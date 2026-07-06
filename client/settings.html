@@ -225,8 +225,8 @@ input:checked + .slider:before {
 
     <div class="card">
         <h3>Profile Settings</h3>
-        <input placeholder="Username"><br>
-        <input placeholder="Email"><br><br>
+        <input id="usernameInput" placeholder="Username"><br>
+        <input id="emailInput" placeholder="Email"><br><br>
         <button onclick="saveProfile()">Save Changes</button>
     </div>
 
@@ -257,7 +257,7 @@ function toggleSidebar() {
 
 // LOGOUT
 function logout() {
-    window.location.href = "role.html";
+    window.location.href = "/role.html";
 }
 
 /* =========================
@@ -268,22 +268,27 @@ window.onload = async function () {
     // LOAD SETTINGS FROM BACKEND
     try {
         const res = await fetch("/api/settings");
+        if (!res.ok) throw new Error(`Failed to load settings: ${res.status}`);
+
         const data = await res.json();
 
-        const inputs = document.querySelectorAll(".card input");
+        const usernameInput = document.getElementById("usernameInput");
+        const emailInput = document.getElementById("emailInput");
 
-        inputs[0].value = data.username;
-        inputs[1].value = data.email;
+        if (usernameInput) usernameInput.value = data.username || "";
+        if (emailInput) emailInput.value = data.email || "";
 
     } catch (err) {
         console.error("Error loading settings:", err);
     }
 
     // DARK MODE
-    let dark = localStorage.getItem("darkMode");
-    if (dark === "true") {
+    const dark = localStorage.getItem("darkMode");
+    const darkToggle = document.getElementById("darkToggle");
+
+    if (dark === "enabled") {
         document.body.classList.add("dark");
-        document.getElementById("darkToggle").checked = true;
+        if (darkToggle) darkToggle.checked = true;
     }
 };
 
@@ -292,9 +297,11 @@ SAVE PROFILE
 ========================= */
 async function saveProfile() {
 
-    const inputs = document.querySelectorAll(".card input");
-    const username = inputs[0].value;
-    const email = inputs[1].value;
+    const usernameInput = document.getElementById("usernameInput");
+    const emailInput = document.getElementById("emailInput");
+
+    const username = usernameInput ? usernameInput.value : "";
+    const email = emailInput ? emailInput.value : "";
 
     if (!username || !email) {
         alert("❌ Fill all fields");
@@ -368,7 +375,8 @@ function toggleDarkMode() {
     document.body.classList.toggle("dark");
 
     let isDark = document.body.classList.contains("dark");
-    localStorage.setItem("darkMode", isDark);
+    // Keep consistent with adminDashboard.html which checks for "enabled"
+    localStorage.setItem("darkMode", isDark ? "enabled" : "disabled");
 }
 </script>
 

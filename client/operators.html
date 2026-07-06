@@ -253,13 +253,22 @@ button {
 </div>
 
 <script>
-let operators = JSON.parse(localStorage.getItem("operators")) || [
-    { name: "John", role: "Support" },
-    { name: "Raj", role: "Admin" }
-];
+let operators = [];
+
+async function loadOperators() {
+    try {
+        const res = await fetch('/api/operators');
+        if (!res.ok) throw new Error('Failed to load operators');
+        operators = await res.json();
+        renderOperators();
+    } catch (err) {
+        console.error(err);
+        alert('Error loading operators from backend');
+    }
+}
 
 // ADD
-function addOperator() {
+async function addOperator() {
     let name = document.getElementById("name").value.trim();
     let role = document.getElementById("role").value;
 
@@ -268,16 +277,26 @@ function addOperator() {
         return;
     }
 
-    operators.push({ name, role });
-    localStorage.setItem("operators", JSON.stringify(operators));
+    try {
+        const res = await fetch('/api/operators', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, role })
+        });
 
-    document.getElementById("name").value = "";
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Add operator failed');
 
-    displayOperators();
+        document.getElementById("name").value = "";
+        await loadOperators();
+    } catch (err) {
+        console.error(err);
+        alert('Error adding operator');
+    }
 }
 
 // DISPLAY
-function displayOperators() {
+function renderOperators() {
     let output = "";
 
     let total = operators.length;
@@ -298,7 +317,7 @@ function displayOperators() {
                 <td>${op.name}</td>
                 <td>${op.role}</td>
                 <td>
-                    <button class="delete" onclick="deleteOperator(${index})">Delete</button>
+                    <button class="delete" onclick="deleteOperator(${op.id})">Delete</button>
                 </td>
             </tr>
             `;
@@ -309,13 +328,21 @@ function displayOperators() {
 }
 
 // DELETE
-function deleteOperator(index) {
+async function deleteOperator(id) {
     if (!confirm("Delete operator?")) return;
 
-    operators.splice(index, 1);
-    localStorage.setItem("operators", JSON.stringify(operators));
+    try {
+        const res = await fetch(`/api/operators/${id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) {
+            throw new Error(data.error || 'Delete operator failed');
+        }
 
-    displayOperators();
+        await loadOperators();
+    } catch (err) {
+        console.error(err);
+        alert('Error deleting operator');
+    }
 }
 
 // SIDEBAR
@@ -330,7 +357,7 @@ function logout() {
 }
 
 // LOAD
-displayOperators();
+loadOperators();
 </script>
 
 </body>

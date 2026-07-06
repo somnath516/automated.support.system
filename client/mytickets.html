@@ -145,7 +145,7 @@ tr:hover {
 <div class="sidebar collapsed" id="sidebar">
     <h2>Operator</h2>
     <a href="operatorDashboard.html">Dashboard</a>
-    <a href="myTickets.html">My Tickets</a>
+    <a href="mytickets.html">My Tickets</a>
     <hr>
     <a href="#" onclick="logout()" class="logout-btn">Logout</a>
 </div>
@@ -236,7 +236,7 @@ function renderTickets(data) {
             let priorityClass = (ticket.priority || "low").toLowerCase();
 
             let statusClass = "";
-            if (ticket.status === "Closed") statusClass = "closed";
+            if (ticket.status === "Completed") statusClass = "closed";
             else if (ticket.status === "In Progress") statusClass = "inprogress";
             else statusClass = "assigned";
 

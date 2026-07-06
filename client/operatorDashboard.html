@@ -238,7 +238,8 @@ button.action{
 <div class="kpi-cards">
 <div class="kpi"><h4>Tickets Assigned</h4><h2 id="totalAssigned">0</h2></div>
 <div class="kpi"><h4>In Progress</h4><h2 id="inProgress">0</h2></div>
-<div class="kpi"><h4>Closed</h4><h2 id="closedCount">0</h2></div>
+    <div class="kpi"><h4>Completed</h4><h2 id="closedCount">0</h2></div>
+
 <div class="kpi"><h4>Completion Rate</h4><h2 id="completionRate">0%</h2></div>
 </div>
 
@@ -294,12 +295,14 @@ button.action{
 const socket = io();
 
 /* ✅ FIX 1: Validate operator */
-const operatorName = localStorage.getItem("operatorName");
+const operatorName = localStorage.getItem("operatorName") || localStorage.getItem("username");
 
 if (!operatorName) {
+  // Try to recover: operator pages may have role stored but operatorName cleared.
   alert("Session expired. Please login again.");
   window.location.href = "role.html";
 }
+
 
 /* ===============================
    LOAD TICKETS
@@ -314,15 +317,19 @@ async function loadTickets(){
 
     const tickets = await res.json();
 
+const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
+
     const total = tickets.length;
-    const inProgress = tickets.filter(t => t.status === "In Progress").length;
-    const closed = tickets.filter(t => t.status === "Closed").length;
+    const inProgress = tickets.filter(t => normalizeStatus(t.status) === "in progress").length;
+    const completed = tickets.filter(t => normalizeStatus(t.status) === "completed").length;
+
 
     document.getElementById("totalAssigned").innerText = total;
     document.getElementById("inProgress").innerText = inProgress;
-    document.getElementById("closedCount").innerText = closed;
+    document.getElementById("closedCount").innerText = completed;
     document.getElementById("completionRate").innerText =
-      total ? Math.round((closed/total)*100)+"%" : "0%";
+      total ? Math.round((completed/total)*100)+"%" : "0%";
+
 
     /* TABLE */
     const tbody = document.getElementById("ticketTable");
@@ -332,17 +339,20 @@ async function loadTickets(){
 
       let actionButtons = "";
 
-      if(ticket.status === "Assigned"){
+      const st = (String(ticket.status || "").trim());
+      if(st === "Assigned"){
         actionButtons = `<button class="action progress-btn"
         onclick="updateStatus(${ticket.id},'In Progress')">Start</button>`;
       }
-      else if(ticket.status === "In Progress"){
+      else if(st === "In Progress"){
         actionButtons = `<button class="action close-btn"
-        onclick="updateStatus(${ticket.id},'Closed')">Close</button>`;
+        onclick="updateStatus(${ticket.id},'Completed')">Close</button>`;
       }
       else{
         actionButtons = "Completed";
       }
+
+
 
       tbody.innerHTML += `
       <tr>
@@ -364,7 +374,8 @@ async function loadTickets(){
 
       if(ticket.status === "Assigned") statusClass = "status-open";
       else if(ticket.status === "In Progress") statusClass = "status-progress";
-      else if(ticket.status === "Closed") statusClass = "status-closed";
+      else if(ticket.status === "Completed") statusClass = "status-closed";
+
 
       recentDiv.innerHTML += `
       <div class="recent-ticket-row">

@@ -57,6 +57,29 @@ db.serialize(() => {
     )
   `);
 
+  /* OPERATORS TABLE (admin UI manages operators here)
+     - uses user identity (id) as name, but you can also treat this as display name
+  */
+  db.run(`
+    CREATE TABLE IF NOT EXISTS operators (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      role TEXT CHECK(role IN ('admin','operator')) NOT NULL,
+      UNIQUE(name)
+    )
+  `);
+
+  /* seed operators from users table if operators table empty */
+  db.get("SELECT COUNT(*) as c FROM operators", (err, row) => {
+    if (err) return;
+    if (row.c > 0) return;
+
+    db.run(
+      "INSERT INTO operators (name, role) SELECT id, role FROM users WHERE role IN ('admin','operator')"
+    );
+  });
+
+
   /* TICKETS TABLE */
   db.run(`
     CREATE TABLE IF NOT EXISTS tickets (

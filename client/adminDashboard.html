@@ -213,7 +213,7 @@ body.dark canvas {
         <h2 id="openTickets">0</h2>
     </div>
     <div class="card">
-        <h3>Closed Tickets</h3>
+        <h3>Completed Tickets</h3>
         <h2 id="closedTickets">0</h2>
     </div>
     <div class="card">
@@ -280,7 +280,7 @@ async function loadDashboard() {
 
         if (t.status === "Assigned") assignedCount++;
         if (t.status === "In Progress") inProgressCount++;
-        if (t.status === "Closed") closedCount++;
+        if (t.status === "Completed") closedCount++;
 
         if (t.priority === "High") high++;
         if (t.priority === "Medium") medium++;
@@ -318,7 +318,7 @@ async function loadDashboard() {
         {
             type: "bar",
             data: {
-                labels: ["Assigned", "In Progress", "Closed"],
+                labels: ["Assigned", "In Progress", "Completed"],
                 datasets: [{
                     data: [assignedCount, inProgressCount, closedCount],
                     backgroundColor: ["#3b82f6", "#f59e0b", "#10b981"]
