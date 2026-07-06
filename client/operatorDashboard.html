@@ -322,13 +322,17 @@ if (localStorage.getItem("darkMode") === "enabled") {
 }
 
 /* ✅ FIX 1: Validate operator */
-const operatorName = localStorage.getItem("operatorName") || localStorage.getItem("username");
+// Your tickets are seeded with assignedTo = "operator" in db.js/server.js.
+// Login stores operator.id into localStorage under "username".
+// So we must fall back to the literal "operator" to make the dashboard query match.
+let operatorName = localStorage.getItem("operatorName") || localStorage.getItem("username");
 
 if (!operatorName) {
-  // Try to recover: operator pages may have role stored but operatorName cleared.
-  alert("Session expired. Please login again.");
-  window.location.href = "role.html";
+  operatorName = "operator";
 }
+
+console.log("Operator Dashboard operatorName:", operatorName);
+
 
 
 /* ===============================
