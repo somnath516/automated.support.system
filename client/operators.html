@@ -5,9 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+:root {
+    --motion-fast: 180ms;
+    --motion-med: 420ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
+
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
+    scroll-behavior: smooth;
     display: flex;
     background: #f4f6f9;
 }
@@ -108,6 +118,8 @@ body.dark table tr:hover {
 /* CARDS */
 .card {
     background: white;
+    transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, background-color var(--motion-fast) ease;
+    animation: riseIn var(--motion-med) ease both;
     padding: 20px;
     border-radius: 12px;
     margin-bottom: 20px;
@@ -166,6 +178,12 @@ tr {
 
 tr:hover {
     background: #f1f5f9;
+    transform: scale(1.01);
+}
+
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* BUTTONS */

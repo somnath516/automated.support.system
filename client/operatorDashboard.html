@@ -11,8 +11,17 @@
 
 <style>
 
-body{
-  margin:0;
+:root {
+    --motion-fast: 180ms;
+    --motion-med: 420ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
+
+body {
+    margin: 0;
   font-family:'Poppins',sans-serif;
   display:flex;
   background:#f4f6f9;
@@ -82,6 +91,9 @@ body{
   background:white;
   padding:25px;
   border-radius:14px;
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, background-color var(--motion-fast) ease;
+  animation: riseIn var(--motion-med) ease both;
+
   text-align:center;
   box-shadow:0 8px 20px rgba(0,0,0,0.06);
 }

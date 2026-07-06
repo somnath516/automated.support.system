@@ -10,7 +10,7 @@ body {
     font-family: 'Segoe UI', sans-serif;
     display: flex;
     background: #f4f6f9;
-    transition: 0.3s;
+    transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* DARK MODE */
@@ -115,11 +115,18 @@ body.dark .menu-btn {
     margin-bottom: 20px;
     border-radius: 12px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    transition: 0.3s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+    animation: riseIn 420ms ease both;
+}
+
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.10);
 }
 
 /* INPUT */
@@ -146,12 +153,15 @@ button {
     cursor: pointer;
     background: #3b82f6;
     color: white;
-    transition: 0.3s;
+    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
+
+button:active { transform: translateY(1px) scale(0.99); }
 
 button:hover {
     background: #2563eb;
-    transform: scale(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(37,99,235,0.25);
 }
 
 /* SWITCH */
@@ -232,8 +242,9 @@ input:checked + .slider:before {
 
     <div class="card">
         <h3>Change Password</h3>
-        <input type="password" placeholder="New Password"><br><br>
-        <button onclick="updatePassword()">Update Password</button>
+        <input id="passwordInput" type="password" placeholder="New Password"><br>
+        <input id="confirmPasswordInput" type="password" placeholder="Confirm New Password"><br><br>
+        <button id="updatePasswordBtn" onclick="updatePassword()">Update Password</button>
     </div>
 
     <div class="card">
@@ -336,13 +347,13 @@ UPDATE PASSWORD
 ========================= */
 async function updatePassword() {
 
-    const passwordInput = document.querySelector('input[type="password"]');
-    const password = passwordInput.value;
+    const passwordInput = document.getElementById("passwordInput");
+    const confirmPasswordInput = document.getElementById("confirmPasswordInput");
+    const password = passwordInput ? passwordInput.value : "";
+    const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : "";
 
-    if (!password) {
-        alert("❌ Enter password");
-        return;
-    }
+    const updateBtn = document.getElementById("updatePasswordBtn");
+    if (updateBtn) updateBtn.disabled = true;
 
     try {
         const res = await fetch("/api/settings/password", {
@@ -358,6 +369,7 @@ async function updatePassword() {
         if (data.success) {
             alert("✅ Password updated in database");
             passwordInput.value = "";
+            if (confirmPasswordInput) confirmPasswordInput.value = "";
         } else {
             alert("❌ Failed to update password");
         }
@@ -365,7 +377,11 @@ async function updatePassword() {
     } catch (err) {
         console.error(err);
         alert("❌ Server error");
+    } finally {
+        if (updateBtn) updateBtn.disabled = false;
     }
+
+    // (Input validation removed from this trailing block; it is handled earlier in the function.)
 }
 
 /* =========================

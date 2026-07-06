@@ -103,6 +103,18 @@ hr {
 .card {
     background: white;
     padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+    animation: riseIn 420ms ease both;
+}
+
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.card:hover {
     margin-bottom: 20px;
     border-radius: 12px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.05);
@@ -130,11 +142,20 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: 0.2s;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
+/* (override existing button rules below if any) */
+/* (remove duplicate button rule) */
+/* button duplicate removed to avoid overriding the motion styles above */
+
 button:hover {
-    transform: scale(1.05);
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 12px 24px rgba(37,99,235,0.18);
+}
+
+button:active {
+    transform: translateY(1px) scale(0.99);
 }
 
 .edit { background: orange; color: white; }
