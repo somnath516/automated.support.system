@@ -43,10 +43,8 @@ transition: transform 0.35s ease;
 
 
 /* ensure smooth when clicking nav/menu */
-.sidebar,
-.main {
-    will-change: transform, margin-left;
-}
+/* will-change is set per-element above to avoid conflicting transition behavior */
+
 
 
 .sidebar h2 {
@@ -89,9 +87,10 @@ hr {
     flex: 1;
     margin-left: 0;
     padding: 30px 40px;
-    transition: margin-left 0.3s ease;
+transition: margin-left 0.35s ease;
     width: 100%;
 }
+
 
 .main.full {
     margin-left: 230px;
