@@ -6,9 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="/socket.io/socket.io.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 
 :root {
@@ -25,7 +22,11 @@ body {
   font-family:'Poppins',sans-serif;
   display:flex;
   background:#f4f6f9;
+  opacity:0;
+  animation:pageIn 0.3s ease-out forwards;
 }
+
+@keyframes pageIn { to { opacity:1; } }
 
 .sidebar{
   width:230px;
@@ -156,6 +157,14 @@ body {
   overflow-y:auto;
 }
 
+.loading-row td{color:#6b7280;text-align:center;padding:24px;}
+.loading-row td::after{
+  content:"";display:inline-block;width:16px;height:16px;margin-left:8px;
+  vertical-align:-3px;border:2px solid #d1d5db;border-top-color:#2563eb;
+  border-radius:50%;animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
 .table-container thead th{
   position:sticky;
   top:0;
@@ -283,7 +292,7 @@ button.action{
 <th>Action</th>
 </tr>
 </thead>
-<tbody id="ticketTable"></tbody>
+<tbody id="ticketTable"><tr class="loading-row"><td colspan="5">Loading tickets</td></tr></tbody>
 </table>
 </div>
 
@@ -313,6 +322,8 @@ button.action{
 </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const socket = io();
 
@@ -332,6 +343,9 @@ if (!operatorName) {
 }
 
 console.log("Operator Dashboard operatorName:", operatorName);
+const ticketsCacheKey = `operatorTickets:${operatorName}`;
+let loadingPromise = null;
+let hasRenderedTickets = false;
 
 
 
@@ -339,14 +353,36 @@ console.log("Operator Dashboard operatorName:", operatorName);
    LOAD TICKETS
 ================================ */
 async function loadTickets(){
+  if (loadingPromise) return loadingPromise;
+  const cached = localStorage.getItem(ticketsCacheKey);
+  if (cached) {
+    try {
+      const cachedTickets = JSON.parse(cached);
+      if (Array.isArray(cachedTickets) && cachedTickets.length) {
+        document.getElementById("ticketTable").innerHTML = cachedTickets.map((ticket, i) =>
+          `<tr><td>${i + 1}</td><td>${ticket.title}</td><td><span class="badge ${ticket.priority}">${ticket.priority}</span></td><td>${ticket.status}</td><td>Refreshing...</td></tr>`
+        ).join("");
+        hasRenderedTickets = true;
+      }
+    } catch (err) {
+      localStorage.removeItem(ticketsCacheKey);
+    }
+  }
+  loadingPromise = (async () => {
   try{
-    const res = await fetch(`/api/tickets/operator/${operatorName}`, {
-      cache: "no-store" // ✅ FIX 2: prevent caching
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`/api/tickets/operator/${encodeURIComponent(operatorName)}`, {
+      cache: "no-store",
+      signal: controller.signal
     });
+    clearTimeout(timeout);
 
     if(!res.ok) throw new Error("Failed to fetch tickets");
 
     const tickets = await res.json();
+    localStorage.setItem(ticketsCacheKey, JSON.stringify(tickets));
+    hasRenderedTickets = true;
 
 const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
 
@@ -465,7 +501,13 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
 
   }catch(err){
     console.error("❌ Load error:", err);
+    if (!hasRenderedTickets) {
+      document.getElementById("ticketTable").innerHTML =
+        `<tr><td colspan="5" style="text-align:center;padding:24px;color:#dc2626">Unable to load tickets. Please refresh.</td></tr>`;
+    }
   }
+  })();
+  try { await loadingPromise; } finally { loadingPromise = null; }
 }
 
 /* ===============================
@@ -522,7 +564,7 @@ function logout(){
 /* ===============================
    INITIAL LOAD
 ================================ */
-window.onload = loadTickets;
+loadTickets();
 </script>
 
 </body>
