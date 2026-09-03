@@ -434,7 +434,6 @@ async function loadDashboard() {
             }
         }
     );
-    status.textContent = "Updated just now";
     } catch (error) {
         clearTimeout(timeout);
         console.error("Dashboard load failed:", error);
