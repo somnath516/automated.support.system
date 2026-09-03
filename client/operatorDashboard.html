@@ -322,10 +322,8 @@ button.action{
 </div>
 </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const socket = io();
+const socket = window.io ? window.io() : { on: () => {} };
 
 // Apply dark mode
 if (localStorage.getItem("darkMode") === "enabled") {
@@ -453,6 +451,9 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
         <span class="status-badge ${statusClass}">${ticket.status}</span>
       </div>`;
     });
+
+    /* Charts are optional so ticket data never waits on a third-party CDN. */
+    if (typeof Chart === "undefined") return;
 
     /* CHART */
     const high = tickets.filter(t => t.priority==="High").length;
