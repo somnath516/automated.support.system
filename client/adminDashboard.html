@@ -387,7 +387,7 @@ async function loadDashboard() {
     tickets.forEach(ticket => {
         rows.push(`
             <tr>
-                <td>${escapeHtml(ticket.title)}</td>
+                <td>${escapeHtml(String(ticket.title || "").replace(/\s+#\d+\s*$/, ""))}</td>
                 <td>${escapeHtml(ticket.priority)}</td>
                 <td>${escapeHtml(ticket.status)}</td>
                 <td>${escapeHtml(ticket.assignedTo || "Unassigned")}</td>

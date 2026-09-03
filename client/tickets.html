@@ -338,7 +338,7 @@ function renderTickets(data) {
         data.forEach(ticket => {
             output += `
             <tr>
-                <td>${escapeHtml(ticket.title)}</td>
+                <td>${escapeHtml(String(ticket.title || "").replace(/\s+#\d+\s*$/, ""))}</td>
                 <td>${escapeHtml(ticket.description || "-")}</td>
                 <td>${escapeHtml(ticket.status)}</td>
                 <td>

@@ -282,7 +282,7 @@ function renderTickets(data) {
 
             output += `
             <tr>
-                <td>${ticket.title}</td>
+                <td>${String(ticket.title || "").replace(/\s+#\d+\s*$/, "")}</td>
                 <td>${ticket.description || "-"}</td>
                 <td><span class="priority ${priorityClass}">${ticket.priority || "Low"}</span></td>
                 <td class="status ${statusClass}">${ticket.status}</td>

@@ -405,7 +405,7 @@ async function loadTickets(){
       const cachedTickets = JSON.parse(cached);
       if (Array.isArray(cachedTickets) && cachedTickets.length) {
         document.getElementById("ticketTable").innerHTML = cachedTickets.map((ticket, i) =>
-          `<tr><td>${escapeHtml(ticket.title)}</td><td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td><td>${escapeHtml(ticket.status)}</td><td>Refreshing...</td></tr>`
+          `<tr><td>${escapeHtml(String(ticket.title || "").replace(/\s+#\d+\s*$/, ""))}</td><td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td><td>${escapeHtml(ticket.status)}</td><td>Refreshing...</td></tr>`
         ).join("");
         hasRenderedTickets = true;
       }
@@ -474,7 +474,7 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
 
       rows.push(`
       <tr>
-        <td>${escapeHtml(ticket.title)}</td>
+        <td>${escapeHtml(String(ticket.title || "").replace(/\s+#\d+\s*$/, ""))}</td>
         <td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td>
         <td>${escapeHtml(ticket.status)}</td>
         <td>${actionButtons}</td>
@@ -498,7 +498,7 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
       recentRows.push(`
       <div class="recent-ticket-row">
         <div>
-          <strong>${escapeHtml(ticket.title)}</strong><br>
+          <strong>${escapeHtml(String(ticket.title || "").replace(/\s+#\d+\s*$/, ""))}</strong><br>
           <small>${escapeHtml(ticket.status)}</small>
         </div>
         <span class="status-badge ${statusClass}">${escapeHtml(ticket.status)}</span>
