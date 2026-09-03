@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <title>Settings</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/jpeg" href="Logo/logo.jpg">
 
 <style>
 * {
@@ -240,7 +241,7 @@ input:checked + .slider:before {
 <div class="main" id="main">
 
     <div class="topbar">
-        <button class="menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+        <button class="menu-btn" onclick="toggleSidebar()">â˜° Menu</button>
         <h1>Settings</h1>
     </div>
 
@@ -326,7 +327,7 @@ async function saveProfile() {
     const email = emailInput ? emailInput.value : "";
 
     if (!username || !email) {
-        alert("❌ Fill all fields");
+        alert("âŒ Fill all fields");
         return;
     }
 
@@ -342,14 +343,14 @@ async function saveProfile() {
         const data = await res.json();
 
         if (data.success) {
-            alert("✅ Profile updated");
+            alert("âœ… Profile updated");
         } else {
-            alert("❌ Failed to update");
+            alert("âŒ Failed to update");
         }
 
     } catch (err) {
         console.error(err);
-        alert("❌ Server error");
+        alert("âŒ Server error");
     }
 }
 
@@ -378,16 +379,16 @@ async function updatePassword() {
         const data = await res.json();
 
         if (data.success) {
-            alert("✅ Password updated in database");
+            alert("âœ… Password updated in database");
             passwordInput.value = "";
             if (confirmPasswordInput) confirmPasswordInput.value = "";
         } else {
-            alert("❌ Failed to update password");
+            alert("âŒ Failed to update password");
         }
 
     } catch (err) {
         console.error(err);
-        alert("❌ Server error");
+        alert("âŒ Server error");
     } finally {
         if (updateBtn) updateBtn.disabled = false;
     }

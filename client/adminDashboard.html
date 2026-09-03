@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <title>Admin Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="Logo/logo.jpg">
 <style>
 :root {
     --motion-fast: 180ms;
@@ -198,7 +199,7 @@ th {
     background: #f9fafb;
 }
 
-/* 🔥 DARK MODE */
+/* ðŸ”¥ DARK MODE */
 body.dark {
     background: #111827;
     color: #f9fafb;
@@ -239,10 +240,10 @@ body.dark canvas {
 <div class="main" id="main">
 
 <div class="topbar">
-    <button class="menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+    <button class="menu-btn" onclick="toggleSidebar()">â˜° Menu</button>
     <h1>Admin Dashboard</h1>
 </div>
-<div id="dashboardStatus" class="dashboard-status" role="status" aria-live="polite">Loading dashboard…</div>
+<div id="dashboardStatus" class="dashboard-status" role="status" aria-live="polite">Loading dashboardâ€¦</div>
 
 <div class="cards">
     <div class="card">
@@ -294,7 +295,7 @@ body.dark canvas {
 </div>
 
 <script>
-// ✅ APPLY DARK MODE (ONLY READ FROM SETTINGS)
+// âœ… APPLY DARK MODE (ONLY READ FROM SETTINGS)
 window.onload = () => {
     if (localStorage.getItem("darkMode") === "enabled") {
         document.body.classList.add("dark");
@@ -348,7 +349,7 @@ function loadChartLibrary() {
 async function loadDashboard() {
     const status = document.getElementById("dashboardStatus");
     status.className = "dashboard-status";
-    status.textContent = "Loading dashboard…";
+    status.textContent = "Loading dashboardâ€¦";
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {

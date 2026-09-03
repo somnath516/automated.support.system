@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Operator Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/jpeg" href="Logo/logo.jpg">
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -155,7 +156,7 @@ body {
   border-radius:10px;
 }
 
-/* ✅ Table scroll (unchanged) */
+/* âœ… Table scroll (unchanged) */
 .table-container{
   max-height:260px;
   overflow-y:auto;
@@ -176,7 +177,7 @@ body {
   z-index:1;
 }
 
-/* ✅ FIXED: Chart height increased (ONLY needed fix) */
+/* âœ… FIXED: Chart height increased (ONLY needed fix) */
 .chart-box{
   height:300px;
   display:flex;
@@ -266,7 +267,7 @@ button.action{
 <div class="main" id="main">
 
 <div class="topbar">
-<button class="menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+<button class="menu-btn" onclick="toggleSidebar()">â˜° Menu</button>
 <h1>Operator Dashboard</h1>
 </div>
 
@@ -334,7 +335,7 @@ if (localStorage.getItem("darkMode") === "enabled") {
   document.body.classList.add("dark");
 }
 
-/* ✅ FIX 1: Validate operator */
+/* âœ… FIX 1: Validate operator */
 // Your tickets are seeded with assignedTo = "operator" in db.js/server.js.
 // Login stores operator.id into localStorage under "username".
 // So we must fall back to the literal "operator" to make the dashboard query match.
@@ -548,7 +549,7 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
     });
 
   }catch(err){
-    console.error("❌ Load error:", err);
+    console.error("âŒ Load error:", err);
     if (!hasRenderedTickets) {
       document.getElementById("ticketTable").innerHTML =
         `<tr><td colspan="5" style="text-align:center;padding:24px;color:#dc2626">Unable to load tickets. Please refresh.</td></tr>`;
@@ -571,11 +572,11 @@ async function updateStatus(id,status){
 
     if(!res.ok) throw new Error("Update failed");
 
-    /* ✅ FIX 3: wait + reload */
+    /* âœ… FIX 3: wait + reload */
     await loadTickets();
 
   }catch(err){
-    console.error("❌ Update error:", err);
+    console.error("âŒ Update error:", err);
   }
 }
 
