@@ -251,8 +251,6 @@ body.dark canvas {
     </button>
     <h1>Admin Dashboard</h1>
 </div>
-<div id="dashboardStatus" class="dashboard-status" role="status" aria-live="polite">Loading dashboardâ€¦</div>
-
 <div class="cards">
     <div class="card">
         <h3>Total Tickets</h3>
@@ -355,9 +353,6 @@ function loadChartLibrary() {
 }
 
 async function loadDashboard() {
-    const status = document.getElementById("dashboardStatus");
-    status.className = "dashboard-status";
-    status.textContent = "Loading dashboardâ€¦";
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {
