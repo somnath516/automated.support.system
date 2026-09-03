@@ -13,6 +13,8 @@
     --motion-med: 420ms;
 }
 
+* { box-sizing: border-box; }
+
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
 }
@@ -29,13 +31,14 @@ body {
 @keyframes pageIn { to { opacity:1; } }
 
 .sidebar{
-  width:230px;
+  width:270px;
   background:#1f2937;
   color:white;
   height:100vh;
   padding:20px;
   position:fixed;
-  transition:0.3s;
+  transition:transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change:transform;
 }
 
 .sidebar.collapsed{transform:translateX(-100%);}
@@ -60,10 +63,11 @@ body {
   margin-left:0;
   padding:30px 40px;
   width:100%;
-  transition:0.3s;
+  transition:margin-left 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change:margin-left;
 }
 
-.main.full{margin-left:230px;}
+.main.full{margin-left:270px;}
 
 .topbar{
   display:flex;

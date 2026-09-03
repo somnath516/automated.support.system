@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+* { box-sizing: border-box; }
+@media (prefers-reduced-motion: reduce) {
+    *, .sidebar, .main { animation: none !important; transition: none !important; }
+}
+
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
@@ -13,7 +18,7 @@ body {
 
 /* SIDEBAR */
 .sidebar {
-    width: 230px;
+    width: 270px;
     background: #1f2937;
     color: white;
     height: 100vh;
@@ -21,7 +26,8 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    transition: transform 0.3s ease;
+    transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
 }
 
 .sidebar.collapsed {
@@ -53,11 +59,12 @@ body {
 /* MAIN */
 .main {
     padding: 30px 40px;
-    transition: margin-left 0.3s ease;
+    transition: margin-left 360ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: margin-left;
 }
 
 .main.full {
-    margin-left: 230px;
+    margin-left: 270px;
 }
 
 /* TOPBAR */

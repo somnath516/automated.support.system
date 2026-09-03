@@ -9,6 +9,11 @@
     scroll-behavior: smooth;
 }
 
+* { box-sizing: border-box; }
+@media (prefers-reduced-motion: reduce) {
+    *, .sidebar, .main { animation: none !important; transition: none !important; }
+}
+
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
@@ -44,13 +49,14 @@ body.dark .menu-btn {
 
 /* SIDEBAR */
 .sidebar {
-    width: 230px;
+    width: 270px;
     background: #1f2937;
     color: white;
     height: 100vh;
     padding: 20px;
     position: fixed;
-    transition: transform 0.4s ease;
+    transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
 }
 
 .sidebar.collapsed {
@@ -82,11 +88,12 @@ body.dark .menu-btn {
     flex: 1;
     margin-left: 0;
     padding: 30px 40px;
-    transition: margin-left 0.4s ease;
+    transition: margin-left 360ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: margin-left;
 }
 
 .main.full {
-    margin-left: 230px;
+    margin-left: 270px;
 }
 
 /* TOPBAR */
