@@ -267,21 +267,46 @@ body.dark button.delete { background: #ef4444; }
             </thead>
             <tbody id="ticketList"></tbody>
         </table>
+        <button id="loadMoreBtn" type="button" onclick="loadMoreTickets()" hidden>Load more tickets</button>
     </div>
 
 </div>
 
 <script>
 let tickets = [];
+let ticketOffset = 0;
+let loadingTickets = false;
 
 // LOAD DATA
-function displayTickets() {
-    fetch("/api/tickets")
-        .then(res => res.json())
-        .then(data => {
-            tickets = data;
-            renderTickets(tickets);
-        });
+async function displayTickets(append = false) {
+    if (loadingTickets) return;
+    loadingTickets = true;
+    if (!append) {
+        ticketOffset = 0;
+        tickets = [];
+    }
+    try {
+        const res = await fetch(`/api/tickets?limit=50&offset=${ticketOffset}`, { cache: "no-store" });
+        if (res.status === 401 || res.status === 403) {
+            window.location.href = "role.html";
+            return;
+        }
+        if (!res.ok) throw new Error("Failed to load tickets");
+        const data = await res.json();
+        tickets = append ? tickets.concat(data) : data;
+        ticketOffset += data.length;
+        renderTickets(tickets);
+        document.getElementById("loadMoreBtn").hidden = data.length < 50;
+    } catch (error) {
+        console.error(error);
+        document.getElementById("ticketList").innerHTML = '<tr><td colspan="5">Unable to load tickets. <button type="button" onclick="displayTickets()">Retry</button></td></tr>';
+    } finally {
+        loadingTickets = false;
+    }
+}
+
+function loadMoreTickets() {
+    displayTickets(true);
 }
 
 // SEARCH
@@ -308,17 +333,32 @@ function renderTickets(data) {
             output += `
             <tr>
                 <td>${ticket.id}</td>
-                <td>${ticket.title}</td>
-                <td>${ticket.description || "-"}</td>
-                <td>${ticket.status}</td>
+                <td>${escapeHtml(ticket.title)}</td>
+                <td>${escapeHtml(ticket.description || "-")}</td>
+                <td>${escapeHtml(ticket.status)}</td>
                 <td>
-                    <button class="edit" onclick="editTicket(${ticket.id}, '${ticket.title}', \`${ticket.description || ""}\`)">Edit</button>
-                    <button class="delete" onclick="deleteTicket(${ticket.id})">Delete</button>
+                    <button class="edit" data-action="edit" data-id="${ticket.id}">Edit</button>
+                    <button class="delete" data-action="delete" data-id="${ticket.id}">Delete</button>
                 </td>
             </tr>
             `;
         });
     }
+
+    function escapeHtml(value) {
+        const node = document.createElement("div");
+        node.textContent = value == null ? "" : String(value);
+        return node.innerHTML;
+    }
+
+    document.getElementById("ticketList").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const ticket = tickets.find(item => String(item.id) === button.dataset.id);
+        if (!ticket) return;
+        if (button.dataset.action === "edit") editTicket(ticket.id, ticket.title, ticket.description || "");
+        if (button.dataset.action === "delete") deleteTicket(ticket.id);
+    });
 
     document.getElementById("ticketList").innerHTML = output;
 }
@@ -338,7 +378,11 @@ function editTicket(id, oldTitle, oldDesc) {
             description: newDesc
         })
     })
-    .then(() => displayTickets());
+    .then(res => {
+        if (!res.ok) throw new Error("Update failed");
+        return displayTickets();
+    })
+    .catch(error => alert(error.message));
 }
 
 // DELETE
@@ -346,7 +390,11 @@ function deleteTicket(id) {
     if (!confirm("Delete ticket?")) return;
 
     fetch(`/api/tickets/${id}`, { method: "DELETE" })
-    .then(() => displayTickets());
+    .then(res => {
+        if (!res.ok) throw new Error("Delete failed");
+        return displayTickets();
+    })
+    .catch(error => alert(error.message));
 }
 
 // SAME SMOOTH FUNCTION AS DASHBOARD
@@ -357,7 +405,9 @@ function toggleSidebar() {
 
 // LOGOUT
 function logout() {
-    window.location.href = "role.html";
+    fetch("/api/logout", { method: "POST" }).finally(() => {
+        window.location.href = "role.html";
+    });
 }
 
 // Apply dark mode

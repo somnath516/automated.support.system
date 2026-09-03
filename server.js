@@ -175,6 +175,21 @@ app.put("/api/settings/password", auth, roles("admin"), async (req, res) => {
   });
 });
 
+app.put("/api/settings/password-legacy-disabled", auth, roles("admin"), async (req, res) => {
+  const { password, confirmPassword } = req.body;
+  if (typeof password !== "string" || password.length < 8 || password !== confirmPassword) {
+    return res.status(400).json({ error: "Passwords must match and be at least 8 characters" });
+  }
+  const hash = await bcrypt.hash(password, 12);
+  db.run("UPDATE settings SET password=? WHERE id=1", [hash], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    db.run("UPDATE users SET password=? WHERE id=?", [hash, req.user.id], (userErr) => {
+      if (userErr) return res.status(500).json({ error: userErr.message });
+      res.json({ success: this.changes > 0 });
+    });
+  });
+});
+
 app.post("/api/tickets", auth, (req, res) => {
   const { title, priority, category, description } = req.body;
   const assignedTo = typeof req.body.assignedTo === "string" ? req.body.assignedTo.trim() : "operator";
@@ -200,24 +215,26 @@ app.get("/api/tickets", auth, roles("admin"), (req, res) => {
     res.json(rows);
   });
 
-  app.get("/api/tickets/summary", auth, roles("admin"), (req, res) => {
-    db.get(
-      `SELECT COUNT(*) AS total,
-        SUM(CASE WHEN status='Assigned' THEN 1 ELSE 0 END) AS assigned,
-        SUM(CASE WHEN status='In Progress' THEN 1 ELSE 0 END) AS inProgress,
-        SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) AS completed,
-        SUM(CASE WHEN priority='High' THEN 1 ELSE 0 END) AS high,
-        SUM(CASE WHEN priority='Medium' THEN 1 ELSE 0 END) AS medium,
-        SUM(CASE WHEN priority='Low' THEN 1 ELSE 0 END) AS low
-       FROM tickets`,
-      (countErr, counts) => {
-        if (countErr) return res.status(500).json({ error: countErr.message });
-        db.all("SELECT * FROM tickets ORDER BY createdAt DESC, id DESC LIMIT 5", (ticketErr, recent) => {
-          if (ticketErr) return res.status(500).json({ error: ticketErr.message });
-          res.json({ counts, recent });
-        });
+});
+
+app.get("/api/tickets/summary", auth, roles("admin"), (req, res) => {
+  db.get(
+    `SELECT COUNT(*) AS total,
+      SUM(CASE WHEN status='Assigned' THEN 1 ELSE 0 END) AS assigned,
+      SUM(CASE WHEN status='In Progress' THEN 1 ELSE 0 END) AS inProgress,
+      SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) AS completed,
+      SUM(CASE WHEN priority='High' THEN 1 ELSE 0 END) AS high,
+      SUM(CASE WHEN priority='Medium' THEN 1 ELSE 0 END) AS medium,
+      SUM(CASE WHEN priority='Low' THEN 1 ELSE 0 END) AS low
+     FROM tickets`,
+    (countErr, counts) => {
+      if (countErr) return res.status(500).json({ error: countErr.message });
+      db.all("SELECT * FROM tickets ORDER BY createdAt DESC, id DESC LIMIT 5", (ticketErr, recent) => {
+        if (ticketErr) return res.status(500).json({ error: ticketErr.message });
+        res.json({ counts, recent });
       });
-  });
+    }
+  );
 });
 
 app.get("/api/tickets/operator/:name", auth, roles("operator"), (req, res) => {

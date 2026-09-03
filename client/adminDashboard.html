@@ -3,8 +3,6 @@
 <head>
     <title>Admin Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 :root {
     --motion-fast: 180ms;
@@ -13,6 +11,7 @@
 
 * {
     scroll-behavior: smooth;
+    box-sizing: border-box;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -30,7 +29,7 @@ body {
 
 /* SIDEBAR */
 .sidebar {
-    width: 230px;
+    width: 270px;
     background: #1f2937;
     color: white;
     height: 100vh;
@@ -90,7 +89,7 @@ hr {
 }
 
 .main.full {
-    margin-left: 230px;
+    margin-left: 270px;
 }
 
 /* TOPBAR */
@@ -165,6 +164,23 @@ hr {
     box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
 
+.dashboard-status {
+    min-height: 24px;
+    margin: -16px 0 18px;
+    color: #6b7280;
+}
+.dashboard-status.error { color: #b91c1c; }
+.retry-btn { background: #2563eb; color: white; }
+@media (max-width: 900px) {
+    .cards, .charts { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px) {
+    .main { padding: 20px 16px; }
+    .cards, .charts { grid-template-columns: 1fr; }
+    .sidebar { width: 270px; }
+    table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -223,6 +239,7 @@ body.dark canvas {
     <button class="menu-btn" onclick="toggleSidebar()">☰ Menu</button>
     <h1>Admin Dashboard</h1>
 </div>
+<div id="dashboardStatus" class="dashboard-status" role="status" aria-live="polite">Loading dashboard…</div>
 
 <div class="cards">
     <div class="card">
@@ -290,10 +307,34 @@ function escapeHtml(value) {
     return node.innerHTML;
 }
 
-async function loadDashboard() {
+let chartLibraryPromise;
+function loadChartLibrary() {
+    if (typeof Chart !== "undefined") return Promise.resolve();
+    if (chartLibraryPromise) return chartLibraryPromise;
+    chartLibraryPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js";
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Chart library unavailable"));
+        document.head.appendChild(script);
+    });
+    return chartLibraryPromise;
+}
 
-    const res = await fetch("/api/tickets/summary");
-    if (!res.ok) throw new Error("Failed to load dashboard");
+async function loadDashboard() {
+    const status = document.getElementById("dashboardStatus");
+    status.className = "dashboard-status";
+    status.textContent = "Loading dashboard…";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+    const res = await fetch("/api/tickets/summary", { signal: controller.signal, cache: "no-store" });
+    clearTimeout(timeout);
+    if (res.status === 401 || res.status === 403) {
+        window.location.href = "role.html";
+        return;
+    }
+    if (!res.ok) throw new Error("Dashboard request failed");
     const payload = await res.json();
     const tickets = payload.recent || [];
     const counts = payload.counts || {};
@@ -305,10 +346,6 @@ async function loadDashboard() {
     let high = Number(counts.high || 0);
     let medium = Number(counts.medium || 0);
     let low = Number(counts.low || 0);
-
-    tickets.forEach(t => {
-
-    });
 
     const openCount = assignedCount + inProgressCount;
 
@@ -333,6 +370,13 @@ async function loadDashboard() {
     });
     table.innerHTML = rows.join("");
 
+    try {
+        await loadChartLibrary();
+    } catch (chartError) {
+        console.warn("Charts unavailable:", chartError);
+        status.textContent = "Dashboard updated; charts are temporarily unavailable.";
+        return;
+    }
     if (statusChartInstance) statusChartInstance.destroy();
     if (priorityChartInstance) priorityChartInstance.destroy();
 
@@ -366,6 +410,13 @@ async function loadDashboard() {
             }
         }
     );
+    status.textContent = "Updated just now";
+    } catch (error) {
+        clearTimeout(timeout);
+        console.error("Dashboard load failed:", error);
+        status.className = "dashboard-status error";
+        status.innerHTML = "Unable to load dashboard. <button class=\"retry-btn\" type=\"button\" onclick=\"loadDashboard()\">Retry</button>";
+    }
 }
 
 // SIDEBAR
@@ -381,7 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // LOGOUT
 function logout() {
-    window.location.href = "/role.html";
+    fetch("/api/logout", { method: "POST" }).finally(() => {
+        window.location.href = "/role.html";
+    });
 }
 
 
