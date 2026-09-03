@@ -136,7 +136,7 @@ tr:hover {
 .inprogress { color: #f59e0b; }
 .assigned { color: #3b82f6; }
 
-style>
+</style>
 
 /* Dark mode */
 body.dark {
@@ -242,7 +242,12 @@ if (localStorage.getItem("darkMode") === "enabled") {
 
 // LOAD FROM BACKEND
 function loadTickets() {
-    fetch("/api/tickets")
+    const operatorName = localStorage.getItem("operatorName") || localStorage.getItem("username");
+    if (!operatorName) {
+        window.location.href = "role.html";
+        return;
+    }
+    fetch(`/api/tickets/operator/${encodeURIComponent(operatorName)}?limit=100`)
         .then(res => res.json())
         .then(data => {
             tickets = data;

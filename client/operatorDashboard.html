@@ -335,16 +335,15 @@ if (localStorage.getItem("darkMode") === "enabled") {
 // Login stores operator.id into localStorage under "username".
 // So we must fall back to the literal "operator" to make the dashboard query match.
 let operatorName = localStorage.getItem("operatorName") || localStorage.getItem("username");
-
-if (!operatorName) {
-  operatorName = "operator";
-}
-
-console.log("Operator Dashboard operatorName:", operatorName);
-const ticketsCacheKey = `operatorTickets:${operatorName}`;
+const ticketsCacheKey = "operatorTickets";
 let loadingPromise = null;
 let hasRenderedTickets = false;
 
+function escapeHtml(value) {
+  const node = document.createElement("div");
+  node.textContent = value == null ? "" : String(value);
+  return node.innerHTML;
+}
 
 
 /* ===============================
@@ -358,7 +357,7 @@ async function loadTickets(){
       const cachedTickets = JSON.parse(cached);
       if (Array.isArray(cachedTickets) && cachedTickets.length) {
         document.getElementById("ticketTable").innerHTML = cachedTickets.map((ticket, i) =>
-          `<tr><td>${i + 1}</td><td>${ticket.title}</td><td><span class="badge ${ticket.priority}">${ticket.priority}</span></td><td>${ticket.status}</td><td>Refreshing...</td></tr>`
+          `<tr><td>${i + 1}</td><td>${escapeHtml(ticket.title)}</td><td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td><td>${escapeHtml(ticket.status)}</td><td>Refreshing...</td></tr>`
         ).join("");
         hasRenderedTickets = true;
       }
@@ -370,7 +369,12 @@ async function loadTickets(){
   try{
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(`/api/tickets/operator/${encodeURIComponent(operatorName)}`, {
+    const identity = await fetch("/api/me", { cache: "no-store" });
+    if (!identity.ok) throw new Error("Session expired");
+    const me = await identity.json();
+    if (me.role !== "operator") throw new Error("Operator access required");
+    operatorName = me.id;
+    const res = await fetch(`/api/tickets/operator/${encodeURIComponent(operatorName)}/summary`, {
       cache: "no-store",
       signal: controller.signal
     });
@@ -378,15 +382,17 @@ async function loadTickets(){
 
     if(!res.ok) throw new Error("Failed to fetch tickets");
 
-    const tickets = await res.json();
+    const payload = await res.json();
+    const tickets = Array.isArray(payload) ? payload : payload.tickets;
+    const counts = payload.counts || {};
     localStorage.setItem(ticketsCacheKey, JSON.stringify(tickets));
     hasRenderedTickets = true;
 
 const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
 
-    const total = tickets.length;
-    const inProgress = tickets.filter(t => normalizeStatus(t.status) === "in progress").length;
-    const completed = tickets.filter(t => normalizeStatus(t.status) === "completed").length;
+    const total = Number(counts.total ?? tickets.length);
+    const inProgress = Number(counts.inProgress || 0);
+    const completed = Number(counts.completed || 0);
 
 
     document.getElementById("totalAssigned").innerText = total;
@@ -398,7 +404,7 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
 
     /* TABLE */
     const tbody = document.getElementById("ticketTable");
-    tbody.innerHTML = "";
+    const rows = [];
 
     tickets.forEach((ticket,i) => {
 
@@ -419,21 +425,22 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
 
 
 
-      tbody.innerHTML += `
+      rows.push(`
       <tr>
         <td>${i+1}</td>
-        <td>${ticket.title}</td>
-        <td><span class="badge ${ticket.priority}">${ticket.priority}</span></td>
-        <td>${ticket.status}</td>
+        <td>${escapeHtml(ticket.title)}</td>
+        <td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td>
+        <td>${escapeHtml(ticket.status)}</td>
         <td>${actionButtons}</td>
-      </tr>`;
+      </tr>`);
     });
+    tbody.innerHTML = rows.join("");
 
     /* RECENT */
     const recentDiv = document.getElementById("recentTickets");
-    recentDiv.innerHTML = "";
+    const recentRows = [];
 
-    tickets.slice(-5).reverse().forEach(ticket => {
+    tickets.slice(0, 5).forEach(ticket => {
 
       let statusClass = "status-open";
 
@@ -442,23 +449,24 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
       else if(ticket.status === "Completed") statusClass = "status-closed";
 
 
-      recentDiv.innerHTML += `
+      recentRows.push(`
       <div class="recent-ticket-row">
         <div>
-          <strong>${ticket.title}</strong><br>
-          <small>${ticket.status}</small>
+          <strong>${escapeHtml(ticket.title)}</strong><br>
+          <small>${escapeHtml(ticket.status)}</small>
         </div>
-        <span class="status-badge ${statusClass}">${ticket.status}</span>
-      </div>`;
+        <span class="status-badge ${statusClass}">${escapeHtml(ticket.status)}</span>
+      </div>`);
     });
+    recentDiv.innerHTML = recentRows.join("");
 
     /* Charts are optional so ticket data never waits on a third-party CDN. */
     if (typeof Chart === "undefined") return;
 
     /* CHART */
-    const high = tickets.filter(t => t.priority==="High").length;
-    const medium = tickets.filter(t => t.priority==="Medium").length;
-    const low = tickets.filter(t => t.priority==="Low").length;
+    const high = Number(counts.high || 0);
+    const medium = Number(counts.medium || 0);
+    const low = Number(counts.low || 0);
 
     if(window.priorityChartObj) window.priorityChartObj.destroy();
 

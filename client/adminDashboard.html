@@ -284,52 +284,54 @@ window.onload = () => {
 let statusChartInstance;
 let priorityChartInstance;
 
+function escapeHtml(value) {
+    const node = document.createElement("div");
+    node.textContent = value == null ? "" : String(value);
+    return node.innerHTML;
+}
+
 async function loadDashboard() {
 
-    const res = await fetch("/api/tickets");
-    const tickets = await res.json();
+    const res = await fetch("/api/tickets/summary");
+    if (!res.ok) throw new Error("Failed to load dashboard");
+    const payload = await res.json();
+    const tickets = payload.recent || [];
+    const counts = payload.counts || {};
 
-    let assignedCount = 0;
-    let inProgressCount = 0;
-    let closedCount = 0;
+    let assignedCount = Number(counts.assigned || 0);
+    let inProgressCount = Number(counts.inProgress || 0);
+    let closedCount = Number(counts.completed || 0);
 
-    let high = 0;
-    let medium = 0;
-    let low = 0;
+    let high = Number(counts.high || 0);
+    let medium = Number(counts.medium || 0);
+    let low = Number(counts.low || 0);
 
     tickets.forEach(t => {
-
-        if (t.status === "Assigned") assignedCount++;
-        if (t.status === "In Progress") inProgressCount++;
-        if (t.status === "Completed") closedCount++;
-
-        if (t.priority === "High") high++;
-        if (t.priority === "Medium") medium++;
-        if (t.priority === "Low") low++;
 
     });
 
     const openCount = assignedCount + inProgressCount;
 
-    document.getElementById("totalTickets").innerText = tickets.length;
+    document.getElementById("totalTickets").innerText = Number(counts.total || 0);
     document.getElementById("openTickets").innerText = openCount;
     document.getElementById("closedTickets").innerText = closedCount;
     document.getElementById("assignedTickets").innerText = assignedCount;
 
     const table = document.getElementById("ticketTable");
-    table.innerHTML = "";
+    const rows = [];
 
-    tickets.slice(-5).reverse().forEach(ticket => {
-        table.innerHTML += `
+    tickets.forEach(ticket => {
+        rows.push(`
             <tr>
                 <td>${ticket.id}</td>
-                <td>${ticket.title}</td>
-                <td>${ticket.priority}</td>
-                <td>${ticket.status}</td>
-                <td>${ticket.assignedTo || "Unassigned"}</td>
+                <td>${escapeHtml(ticket.title)}</td>
+                <td>${escapeHtml(ticket.priority)}</td>
+                <td>${escapeHtml(ticket.status)}</td>
+                <td>${escapeHtml(ticket.assignedTo || "Unassigned")}</td>
             </tr>
-        `;
+        `);
     });
+    table.innerHTML = rows.join("");
 
     if (statusChartInstance) statusChartInstance.destroy();
     if (priorityChartInstance) priorityChartInstance.destroy();

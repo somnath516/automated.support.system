@@ -365,7 +365,7 @@ async function updatePassword() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ password })
+            body: JSON.stringify({ password, confirmPassword })
         });
 
         const data = await res.json();

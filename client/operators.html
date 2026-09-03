@@ -297,9 +297,10 @@ button {
         <h3>Add Operator</h3>
 
         <input id="name" placeholder="Operator Name">
+        <input id="password" type="password" placeholder="Initial password (8+ characters)">
         <select id="role">
-            <option value="Support">Support</option>
-            <option value="Admin">Admin</option>
+            <option value="operator">Operator</option>
+            <option value="admin">Admin</option>
         </select>
 
         <button class="add" onclick="addOperator()">Add</button>
@@ -343,9 +344,10 @@ async function loadOperators() {
 async function addOperator() {
     let name = document.getElementById("name").value.trim();
     let role = document.getElementById("role").value;
+    let password = document.getElementById("password").value;
 
-    if (name === "") {
-        alert("Enter name");
+    if (name === "" || password.length < 8) {
+        alert("Enter a name and an initial password of at least 8 characters");
         return;
     }
 
@@ -353,13 +355,14 @@ async function addOperator() {
         const res = await fetch('/api/operators', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, role })
+            body: JSON.stringify({ name, role, password })
         });
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Add operator failed');
 
         document.getElementById("name").value = "";
+        document.getElementById("password").value = "";
         await loadOperators();
     } catch (err) {
         console.error(err);
@@ -372,8 +375,8 @@ function renderOperators() {
     let output = "";
 
     let total = operators.length;
-    let admins = operators.filter(op => op.role === "Admin").length;
-    let support = operators.filter(op => op.role === "Support").length;
+    let admins = operators.filter(op => op.role === "admin").length;
+    let support = operators.filter(op => op.role === "operator").length;
 
     document.getElementById("totalOps").innerText = total;
     document.getElementById("adminOps").innerText = admins;
@@ -386,8 +389,8 @@ function renderOperators() {
             output += `
             <tr>
                 <td>${index + 1}</td>
-                <td>${op.name}</td>
-                <td>${op.role}</td>
+                <td>${escapeHtml(op.name)}</td>
+                <td>${escapeHtml(op.role)}</td>
                 <td>
                     <button class="delete" onclick="deleteOperator(${op.id})">Delete</button>
                 </td>
@@ -397,6 +400,12 @@ function renderOperators() {
     }
 
     document.getElementById("operatorList").innerHTML = output;
+}
+
+function escapeHtml(value) {
+    const node = document.createElement("div");
+    node.textContent = value == null ? "" : String(value);
+    return node.innerHTML;
 }
 
 // DELETE

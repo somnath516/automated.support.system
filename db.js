@@ -1,27 +1,9 @@
 const sqlite3 = require("sqlite3").verbose();
-const fs = require("fs");
 const path = require("path");
 
-const dbPath = path.resolve("./tickets.db");
+const dbPath = path.join(__dirname, "tickets.db");
 
 console.log("📁 DB Path:", dbPath);
-
-/* ===============================
-   AUTO FIX CORRUPTED DB
-================================ */
-if (fs.existsSync(dbPath)) {
-  try {
-    const stats = fs.statSync(dbPath);
-
-    if (stats.size < 1000) {
-      console.log("⚠️ Corrupted DB detected. Deleting...");
-      fs.unlinkSync(dbPath);
-    }
-  } catch (err) {
-    console.log("⚠️ DB check failed. Resetting...");
-    fs.unlinkSync(dbPath);
-  }
-}
 
 /* ===============================
    CONNECT DATABASE
@@ -69,17 +51,6 @@ db.serialize(() => {
     )
   `);
 
-  /* seed operators from users table if operators table empty */
-  db.get("SELECT COUNT(*) as c FROM operators", (err, row) => {
-    if (err) return;
-    if (row.c > 0) return;
-
-    db.run(
-      "INSERT INTO operators (name, role) SELECT id, role FROM users WHERE role IN ('admin','operator')"
-    );
-  });
-
-
   /* TICKETS TABLE */
   db.run(`
     CREATE TABLE IF NOT EXISTS tickets (
@@ -124,10 +95,18 @@ db.serialize(() => {
     }
   });
 
+  /* Keep the built-in operator directory in sync after users are seeded. */
+  db.run("INSERT OR IGNORE INTO operators (name, role) VALUES ('admin', 'admin')");
+  db.run("INSERT OR IGNORE INTO operators (name, role) VALUES ('operator', 'operator')");
+
   db.run(`
     INSERT OR IGNORE INTO settings (id, username, email, password)
     VALUES (1, 'admin', 'admin@email.com', 'admin123')
   `);
+
+  db.run("CREATE INDEX IF NOT EXISTS idx_tickets_assigned_to ON tickets (assignedTo)");
+  db.run("CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets (status)");
+  db.run("CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets (createdAt DESC)");
 
   /* ===============================
      ADVANCED REALISTIC DATA (1200)
