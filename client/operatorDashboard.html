@@ -338,11 +338,26 @@ let operatorName = localStorage.getItem("operatorName") || localStorage.getItem(
 const ticketsCacheKey = "operatorTickets";
 let loadingPromise = null;
 let hasRenderedTickets = false;
+let chartLibraryPromise = null;
 
 function escapeHtml(value) {
   const node = document.createElement("div");
   node.textContent = value == null ? "" : String(value);
   return node.innerHTML;
+}
+
+function loadChartLibrary() {
+  if (typeof Chart !== "undefined") return Promise.resolve();
+  if (chartLibraryPromise) return chartLibraryPromise;
+
+  chartLibraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Chart library could not be loaded"));
+    document.head.appendChild(script);
+  });
+  return chartLibraryPromise;
 }
 
 
@@ -460,8 +475,8 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
     });
     recentDiv.innerHTML = recentRows.join("");
 
-    /* Charts are optional so ticket data never waits on a third-party CDN. */
-    if (typeof Chart === "undefined") return;
+    /* Load charts after ticket data so a CDN problem cannot block the dashboard. */
+    await loadChartLibrary();
 
     /* CHART */
     const high = Number(counts.high || 0);
