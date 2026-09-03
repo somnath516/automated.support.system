@@ -265,7 +265,6 @@ body.dark button.delete { background: #ef4444; }
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Title</th>
                     <th>Description</th>
                     <th>Status</th>
@@ -306,7 +305,7 @@ async function displayTickets(append = false) {
         document.getElementById("loadMoreBtn").hidden = data.length < 50;
     } catch (error) {
         console.error(error);
-        document.getElementById("ticketList").innerHTML = '<tr><td colspan="5">Unable to load tickets. <button type="button" onclick="displayTickets()">Retry</button></td></tr>';
+        document.getElementById("ticketList").innerHTML = '<tr><td colspan="4">Unable to load tickets. <button type="button" onclick="displayTickets()">Retry</button></td></tr>';
     } finally {
         loadingTickets = false;
     }
@@ -334,12 +333,11 @@ function renderTickets(data) {
     let output = "";
 
     if (data.length === 0) {
-        output = `<tr><td colspan="5" style="text-align:center;">No tickets found</td></tr>`;
+        output = `<tr><td colspan="4" style="text-align:center;">No tickets found</td></tr>`;
     } else {
         data.forEach(ticket => {
             output += `
             <tr>
-                <td>${ticket.id}</td>
                 <td>${escapeHtml(ticket.title)}</td>
                 <td>${escapeHtml(ticket.description || "-")}</td>
                 <td>${escapeHtml(ticket.status)}</td>

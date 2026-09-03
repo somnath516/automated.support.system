@@ -298,7 +298,6 @@ button.action{
 <table>
 <thead>
 <tr>
-<th>#</th>
 <th>Title</th>
 <th>Priority</th>
 <th>Status</th>
@@ -406,7 +405,7 @@ async function loadTickets(){
       const cachedTickets = JSON.parse(cached);
       if (Array.isArray(cachedTickets) && cachedTickets.length) {
         document.getElementById("ticketTable").innerHTML = cachedTickets.map((ticket, i) =>
-          `<tr><td>${i + 1}</td><td>${escapeHtml(ticket.title)}</td><td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td><td>${escapeHtml(ticket.status)}</td><td>Refreshing...</td></tr>`
+          `<tr><td>${escapeHtml(ticket.title)}</td><td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td><td>${escapeHtml(ticket.status)}</td><td>Refreshing...</td></tr>`
         ).join("");
         hasRenderedTickets = true;
       }
@@ -475,7 +474,6 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
 
       rows.push(`
       <tr>
-        <td>${i+1}</td>
         <td>${escapeHtml(ticket.title)}</td>
         <td><span class="badge ${escapeHtml(ticket.priority)}">${escapeHtml(ticket.priority)}</span></td>
         <td>${escapeHtml(ticket.status)}</td>
@@ -560,7 +558,7 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
     console.error("âŒ Load error:", err);
     if (!hasRenderedTickets) {
       document.getElementById("ticketTable").innerHTML =
-        `<tr><td colspan="5" style="text-align:center;padding:24px;color:#dc2626">Unable to load tickets. Please refresh.</td></tr>`;
+        `<tr><td colspan="4" style="text-align:center;padding:24px;color:#dc2626">Unable to load tickets. Please refresh.</td></tr>`;
     }
   }
   })();

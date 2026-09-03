@@ -205,7 +205,6 @@ body.dark .priority { }
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Title</th>
                     <th>Description</th>
                     <th>Priority</th>
@@ -270,7 +269,7 @@ function renderTickets(data) {
     let output = "";
 
     if (data.length === 0) {
-        output = `<tr><td colspan="5" style="text-align:center;">No tickets found</td></tr>`;
+        output = `<tr><td colspan="4" style="text-align:center;">No tickets found</td></tr>`;
     } else {
         data.forEach(ticket => {
 
@@ -283,7 +282,6 @@ function renderTickets(data) {
 
             output += `
             <tr>
-                <td>${ticket.id}</td>
                 <td>${ticket.title}</td>
                 <td>${ticket.description || "-"}</td>
                 <td><span class="priority ${priorityClass}">${ticket.priority || "Low"}</span></td>

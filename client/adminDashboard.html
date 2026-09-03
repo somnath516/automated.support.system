@@ -287,7 +287,6 @@ body.dark canvas {
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Title</th>
                 <th>Priority</th>
                 <th>Status</th>
@@ -388,7 +387,6 @@ async function loadDashboard() {
     tickets.forEach(ticket => {
         rows.push(`
             <tr>
-                <td>${ticket.id}</td>
                 <td>${escapeHtml(ticket.title)}</td>
                 <td>${escapeHtml(ticket.priority)}</td>
                 <td>${escapeHtml(ticket.status)}</td>
@@ -402,7 +400,6 @@ async function loadDashboard() {
         await loadChartLibrary();
     } catch (chartError) {
         console.warn("Charts unavailable:", chartError);
-        status.textContent = "Dashboard updated; charts are temporarily unavailable.";
         return;
     }
     if (statusChartInstance) statusChartInstance.destroy();
