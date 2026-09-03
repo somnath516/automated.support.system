@@ -346,6 +346,27 @@ function escapeHtml(value) {
   return node.innerHTML;
 }
 
+function animateNumber(id, value, suffix = "") {
+  const element = document.getElementById(id);
+  if (!element) return;
+  const target = Number(value) || 0;
+  const start = Number(element.dataset.value || 0);
+  element.dataset.value = String(target);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || start === target) {
+    element.textContent = `${target}${suffix}`;
+    return;
+  }
+  const startedAt = performance.now();
+  const duration = 520;
+  const step = (now) => {
+    const progress = Math.min((now - startedAt) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    element.textContent = `${Math.round(start + (target - start) * eased)}${suffix}`;
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 function loadChartLibrary() {
   if (typeof Chart !== "undefined") return Promise.resolve();
   if (chartLibraryPromise) return chartLibraryPromise;
@@ -410,11 +431,10 @@ const normalizeStatus = (s) => (String(s || "").trim().toLowerCase());
     const completed = Number(counts.completed || 0);
 
 
-    document.getElementById("totalAssigned").innerText = total;
-    document.getElementById("inProgress").innerText = inProgress;
-    document.getElementById("closedCount").innerText = completed;
-    document.getElementById("completionRate").innerText =
-      total ? Math.round((completed/total)*100)+"%" : "0%";
+    animateNumber("totalAssigned", total);
+    animateNumber("inProgress", inProgress);
+    animateNumber("closedCount", completed);
+    animateNumber("completionRate", total ? Math.round((completed / total) * 100) : 0, "%");
 
 
     /* TABLE */

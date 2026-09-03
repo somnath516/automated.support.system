@@ -371,6 +371,27 @@ async function addOperator() {
 }
 
 // DISPLAY
+function animateNumber(id, value) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const target = Number(value) || 0;
+    const start = Number(element.dataset.value || 0);
+    element.dataset.value = String(target);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || start === target) {
+        element.textContent = String(target);
+        return;
+    }
+    const startedAt = performance.now();
+    const duration = 520;
+    const step = (now) => {
+        const progress = Math.min((now - startedAt) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        element.textContent = String(Math.round(start + (target - start) * eased));
+        if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
 function renderOperators() {
     let output = "";
 
@@ -378,9 +399,9 @@ function renderOperators() {
     let admins = operators.filter(op => op.role === "admin").length;
     let support = operators.filter(op => op.role === "operator").length;
 
-    document.getElementById("totalOps").innerText = total;
-    document.getElementById("adminOps").innerText = admins;
-    document.getElementById("supportOps").innerText = support;
+    animateNumber("totalOps", total);
+    animateNumber("adminOps", admins);
+    animateNumber("supportOps", support);
 
     if (operators.length === 0) {
         output = `<tr><td colspan="4" style="text-align:center;">No operators</td></tr>`;

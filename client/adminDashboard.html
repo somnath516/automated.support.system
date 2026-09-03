@@ -307,6 +307,27 @@ function escapeHtml(value) {
     return node.innerHTML;
 }
 
+function animateNumber(id, value, suffix = "") {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const target = Number(value) || 0;
+    const start = Number(element.dataset.value || 0);
+    element.dataset.value = String(target);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || start === target) {
+        element.textContent = `${target}${suffix}`;
+        return;
+    }
+    const startedAt = performance.now();
+    const duration = 520;
+    const step = (now) => {
+        const progress = Math.min((now - startedAt) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        element.textContent = `${Math.round(start + (target - start) * eased)}${suffix}`;
+        if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+
 let chartLibraryPromise;
 function loadChartLibrary() {
     if (typeof Chart !== "undefined") return Promise.resolve();
@@ -349,10 +370,10 @@ async function loadDashboard() {
 
     const openCount = assignedCount + inProgressCount;
 
-    document.getElementById("totalTickets").innerText = Number(counts.total || 0);
-    document.getElementById("openTickets").innerText = openCount;
-    document.getElementById("closedTickets").innerText = closedCount;
-    document.getElementById("assignedTickets").innerText = assignedCount;
+    animateNumber("totalTickets", counts.total);
+    animateNumber("openTickets", openCount);
+    animateNumber("closedTickets", closedCount);
+    animateNumber("assignedTickets", assignedCount);
 
     const table = document.getElementById("ticketTable");
     const rows = [];
