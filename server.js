@@ -190,7 +190,8 @@ app.put("/api/settings/password-legacy-disabled", auth, roles("admin"), async (r
   });
 });
 
-app.post("/api/tickets", auth, (req, res) => {
+// Ticket submission is available from the public "Raise Ticket" page.
+app.post("/api/tickets", (req, res) => {
   const { title, priority, category, description } = req.body;
   const assignedTo = typeof req.body.assignedTo === "string" ? req.body.assignedTo.trim() : "operator";
   if (typeof title !== "string" || !title.trim() || title.length > 200 ||

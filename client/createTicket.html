@@ -390,7 +390,7 @@ headers:{
 body:JSON.stringify(payload)
 });
 
-const data=await response.json();
+const data=await response.json().catch(() => ({}));
 
 if(!response.ok){
 throw new Error(data.error || "Ticket creation failed");
@@ -407,7 +407,7 @@ document.getElementById("ticketForm").reset();
 }catch(err){
 
 console.error(err);
-alert("Error creating ticket");
+alert(err instanceof Error ? err.message : "Error creating ticket");
 
 }
 
