@@ -334,12 +334,16 @@ let operators = [];
 async function loadOperators() {
     try {
         const res = await fetch('/api/operators');
+        if (res.status === 401 || res.status === 403) {
+            window.location.href = 'role.html';
+            return;
+        }
         if (!res.ok) throw new Error('Failed to load operators');
         operators = await res.json();
         renderOperators();
     } catch (err) {
         console.error(err);
-        alert('Error loading operators from backend');
+        alert(err instanceof Error ? err.message : 'Error loading operators from backend');
     }
 }
 
@@ -362,14 +366,24 @@ async function addOperator() {
         });
 
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Add operator failed');
+        if (res.status === 401 || res.status === 403) {
+            window.location.href = 'role.html';
+            return;
+        }
+        if (!res.ok) {
+            const message = data.error || data.message || `Add operator failed (${res.status})`;
+            if (/unique constraint failed/i.test(message)) {
+                throw new Error('An operator with that name already exists.');
+            }
+            throw new Error(message);
+        }
 
         document.getElementById("name").value = "";
         document.getElementById("password").value = "";
         await loadOperators();
     } catch (err) {
         console.error(err);
-        alert('Error adding operator');
+        alert(err instanceof Error ? err.message : 'Error adding operator');
     }
 }
 
